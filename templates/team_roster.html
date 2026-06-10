@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Team Roster{% endblock %}
+{% block content %}
+<h1>Team Roster</h1>
+<p><a href="{{ url_for('time_entry.add_time_form') }}">+ Log a time</a></p>
+
+{% if athletes %}
+<table>
+  <thead>
+    <tr>
+      <th>Athlete</th>
+      <th>Grade</th>
+      <th>Specialty</th>
+      {% for event in events %}
+      <th>{{ event }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for athlete in athletes %}
+    <tr>
+      <td><a href="{{ url_for('time_entry.athlete_detail', athlete_id=athlete.id) }}">{{ athlete.name }}</a></td>
+      <td>{{ athlete.grade if athlete.grade else '—' }}</td>
+      <td>{{ athlete.specialty if athlete.specialty else '—' }}</td>
+      {% for event in events %}
+      <td>{{ pbs[athlete.id].get(event, '—') }}</td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+    <tr>
+      <td colspan="3"><strong>Team fastest</strong></td>
+      {% for event in events %}
+      <td><strong>{{ team_fastest.get(event, '—') }}</strong></td>
+      {% endfor %}
+    </tr>
+  </tbody>
+</table>
+{% else %}
+<p>No athletes registered yet.</p>
+{% endif %}
+{% endblock %}

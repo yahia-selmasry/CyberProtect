@@ -1,7 +1,7 @@
 import os
 from flask import Flask
 from flask_login import LoginManager
-from database import db, User
+from database import db, User, TrackUser
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-insecure-key")
@@ -20,6 +20,8 @@ login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
+    if user_id.startswith("t:"):
+        return TrackUser.query.get(int(user_id[2:]))
     return User.query.get(int(user_id))
 
 from routes.auth import auth_bp
@@ -28,6 +30,7 @@ from routes.scans import scans_bp
 from routes.findings import findings_bp
 from routes.team import team_bp
 from routes.export import export_bp
+from routes.time_entry import time_entry_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(dashboard_bp)
@@ -35,6 +38,7 @@ app.register_blueprint(scans_bp)
 app.register_blueprint(findings_bp)
 app.register_blueprint(team_bp)
 app.register_blueprint(export_bp)
+app.register_blueprint(time_entry_bp)
 
 if __name__ == "__main__":
     with app.app_context():

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Add Time Entry{% endblock %}
+{% block content %}
+<h2>Add Time Entry</h2>
+
+<form method="POST" action="{{ url_for('time_entry.add_time_submit') }}">
+  <div class="form-group">
+    <label for="athlete_id">Athlete</label>
+    <select id="athlete_id" name="athlete_id" required>
+      <option value="">-- Select athlete --</option>
+      {% for a in athletes %}
+        <option value="{{ a.id }}" {% if request.form.get('athlete_id') == a.id|string %}selected{% endif %}>
+          {{ a.name }}{% if a.grade %} (Grade {{ a.grade }}){% endif %}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label for="event">Event</label>
+    <select id="event" name="event" required>
+      <option value="">-- Select event --</option>
+      {% for e in events %}
+        <option value="{{ e }}" {% if request.form.get('event') == e %}selected{% endif %}>{{ e }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label for="time">Time <small>(MM:SS.ms — e.g. 4:32.10)</small></label>
+    <input type="text" id="time" name="time" placeholder="4:32.10"
+           value="{{ request.form.get('time', '') }}" required>
+  </div>
+
+  <div class="form-group">
+    <label for="meet_name">Meet Name</label>
+    <input type="text" id="meet_name" name="meet_name"
+           value="{{ request.form.get('meet_name', '') }}">
+  </div>
+
+  <div class="form-group">
+    <label for="meet_date">Date</label>
+    <input type="date" id="meet_date" name="meet_date"
+           value="{{ request.form.get('meet_date', '') }}">
+  </div>
+
+  <div class="form-group">
+    <label>Session Type</label>
+    <label>
+      <input type="radio" name="session_type" value="meet"
+             {% if request.form.get('session_type', 'meet') == 'meet' %}checked{% endif %}>
+      Meet
+    </label>
+    <label>
+      <input type="radio" name="session_type" value="practice"
+             {% if request.form.get('session_type') == 'practice' %}checked{% endif %}>
+      Practice
+    </label>
+  </div>
+
+  <div class="form-group">
+    <label for="notes">Notes <small>(optional)</small></label>
+    <textarea id="notes" name="notes" rows="3">{{ request.form.get('notes', '') }}</textarea>
+  </div>
+
+  <button type="submit">Save Entry</button>
+  <a href="{{ url_for('dashboard.index') }}">Cancel</a>
+</form>
+{% endblock %}

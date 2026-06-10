@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ athlete.name }} — Dashboard{% endblock %}
+{% block content %}
+<h2>{{ athlete.name }}</h2>
+{% if athlete.grade %}<p>Grade {{ athlete.grade }}</p>{% endif %}
+{% if athlete.specialty %}<p>Specialty: {{ athlete.specialty }}</p>{% endif %}
+
+<p>
+  <a href="{{ url_for('time_entry.add_time_form') }}">+ Add Time Entry</a>
+  &nbsp;|&nbsp;
+  <a href="{{ url_for('time_entry.compare', athlete_id=athlete.id) }}">Compare &rarr;</a>
+</p>
+
+<section>
+  <h3>Performance Chart</h3>
+  <label for="event-select">Event:</label>
+  <select id="event-select">
+    {% for e in events %}
+    <option value="{{ e }}">{{ e }}</option>
+    {% endfor %}
+  </select>
+  <canvas id="perf-chart" width="800" height="350"></canvas>
+</section>
+
+<section>
+  <h3>All Results</h3>
+  {% if results %}
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Event</th>
+        <th>Time</th>
+        <th>Type</th>
+        <th>Meet</th>
+        <th>PB</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in results %}
+      <tr>
+        <td>{{ r.meet_date or '—' }}</td>
+        <td>{{ r.event }}</td>
+        <td>{{ r.time_display }}{% if r.is_personal_best %} ⭐{% endif %}</td>
+        <td>{{ r.session_type }}</td>
+        <td>{{ r.meet_name or '—' }}</td>
+        <td>{% if r.is_personal_best %}⭐{% endif %}</td>
+        <td>{{ r.notes or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No results yet.</p>
+  {% endif %}
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+(function () {
+  const athleteId = {{ athlete.id }};
+  const chartDataUrl = `/athlete/${athleteId}/chart-data`;
+
+  // Format total seconds -> "M:SS.cc" for y-axis labels
+  function fmtTime(secs) {
+    const m = Math.floor(secs / 60);
+    const rem = secs - m * 60;
+    const s = Math.floor(rem);
+    const cc = Math.round((rem - s) * 100);
+    return `${m}:${String(s).padStart(2, "0")}.${String(cc).padStart(2, "0")}`;
+  }
+
+  const ctx = document.getElementById("perf-chart").getContext("2d");
+  const chart = new Chart(ctx, {
+    type: "line",
+    data: { labels: [], datasets: [{ label: "", data: [], tension: 0.3, fill: false }] },
+    options: {
+      scales: {
+        y: {
+          reverse: true,
+          ticks: {
+            callback: (v) => fmtTime(v),
+          },
+        },
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (ctx) => fmtTime(ctx.parsed.y),
+          },
+        },
+      },
+    },
+  });
+
+  function loadChart(event) {
+    fetch(`${chartDataUrl}?event=${encodeURIComponent(event)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        chart.data.labels = data.labels;
+        chart.data.datasets[0].label = event;
+        chart.data.datasets[0].data = data.times;
+        chart.update();
+      });
+  }
+
+  const sel = document.getElementById("event-select");
+  sel.addEventListener("change", () => loadChart(sel.value));
+  // Load first event on page open
+  loadChart(sel.value);
+})();
+</script>
+{% endblock %}

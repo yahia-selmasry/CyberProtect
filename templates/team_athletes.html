@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Team Athletes{% endblock %}
+{% block content %}
+<h1>Team Athletes</h1>
+<ul>
+{% for athlete in athletes %}
+  <li><a href="{{ url_for('time_entry.athlete_detail', athlete_id=athlete.id) }}">{{ athlete.name }}</a>{% if athlete.grade %} (Grade {{ athlete.grade }}){% endif %}</li>
+{% else %}
+  <li>No athletes registered.</li>
+{% endfor %}
+</ul>
+{% endblock %}

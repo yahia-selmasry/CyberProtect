@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Track Register{% endblock %}
+{% block content %}
+<h1>Create Track Account</h1>
+<form method="POST">
+  <label>Username <input type="text" name="username" required></label>
+  <label>Password <input type="password" name="password" required></label>
+  <label>Role
+    <select name="role">
+      <option value="athlete">Athlete</option>
+      <option value="coach">Coach</option>
+    </select>
+  </label>
+  <label>Athlete Name (if registering athlete) <input type="text" name="athlete_name"></label>
+  <button type="submit">Register</button>
+</form>
+<p>Already have an account? <a href="{{ url_for('auth.track_login') }}">Sign In</a></p>
+{% endblock %}

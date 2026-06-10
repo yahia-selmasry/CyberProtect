@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from cryptography.fernet import Fernet
+from utils import seconds_to_display, display_to_seconds  # noqa: F401 — re-exported
 
 db = SQLAlchemy()
 
@@ -99,7 +100,7 @@ class Scan(db.Model):
     triggered_by = db.Column(db.Enum("scheduled", "manual", name="scan_trigger"), default="scheduled")
 
     account = db.relationship("Account", back_populates="scans")
-    findings = db.relationship("Finding", back_populates="scan", lazy=True)
+    findings = db.relationship("Finding", back_populates="scan", lazy=True, foreign_keys="Finding.scan_id")
     notifications = db.relationship("Notification", back_populates="scan", lazy=True)
 
 
@@ -131,3 +132,81 @@ class Notification(db.Model):
 
     scan = db.relationship("Scan", back_populates="notifications")
     user = db.relationship("User", back_populates="notifications")
+
+
+# ---------------------------------------------------------------------------
+# CyberProtect tables
+# ---------------------------------------------------------------------------
+
+class Athlete(db.Model):
+    """Athlete profile record."""
+    __tablename__ = "athletes"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    grade = db.Column(db.Integer, nullable=True)
+    specialty = db.Column(db.Text, nullable=True)
+    athletic_net_id = db.Column(db.Text, nullable=True)
+
+    results = db.relationship("Result", back_populates="athlete", lazy=True)
+    track_user = db.relationship("TrackUser", back_populates="athlete", uselist=False)
+
+
+class Result(db.Model):
+    """Individual performance result for an athlete."""
+    __tablename__ = "results"
+    id = db.Column(db.Integer, primary_key=True)
+    athlete_id = db.Column(db.Integer, db.ForeignKey("athletes.id"), nullable=False)
+    meet_name = db.Column(db.String(255), nullable=True)
+    meet_date = db.Column(db.Date, nullable=True)
+    event = db.Column(db.String(100), nullable=False)
+    time_seconds = db.Column(db.Float, nullable=False)
+    session_type = db.Column(db.Enum("meet", "practice", name="session_type"), nullable=False, default="meet")
+    split_400 = db.Column(db.Float, nullable=True)
+    split_800 = db.Column(db.Float, nullable=True)
+    split_1200 = db.Column(db.Float, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    is_personal_best = db.Column(db.Boolean, nullable=False, default=False)
+
+    athlete = db.relationship("Athlete", back_populates="results")
+
+
+class TrackUser(UserMixin, db.Model):
+    """App user for the track system (athlete or coach)."""
+    __tablename__ = "track_users"
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(255), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.Enum("athlete", "coach", name="track_user_role"), nullable=False, default="athlete")
+    athlete_id = db.Column(db.Integer, db.ForeignKey("athletes.id"), nullable=True)
+
+    athlete = db.relationship("Athlete", back_populates="track_user")
+
+    def get_id(self) -> str:
+        """Return prefixed ID so user loader can distinguish TrackUser from User."""
+        return f"t:{self.id}"
+
+    def set_password(self, password: str):
+        """Hash and store password."""
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str) -> bool:
+        """Verify password against stored hash."""
+        return check_password_hash(self.password_hash, password)
+
+
+# ---------------------------------------------------------------------------
+# CyberProtect helper functions
+# ---------------------------------------------------------------------------
+
+def update_personal_bests(athlete_id: int, event: str):
+    """Recalculate and flag the personal best result for an athlete/event pair."""
+    results = (
+        Result.query
+        .filter_by(athlete_id=athlete_id, event=event)
+        .order_by(Result.time_seconds.asc())
+        .all()
+    )
+    best_id = results[0].id if results else None
+    for r in results:
+        r.is_personal_best = r.id == best_id
+    db.session.commit()
