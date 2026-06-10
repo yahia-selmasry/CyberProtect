@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Scans — {{ account.name }}{% endblock %}
+{% block content %}
+<h1>{{ account.name }} — Scans</h1>
+<form method="POST" action="{{ url_for('scans.trigger_scan', account_id=account.id) }}">
+  <button type="submit">Run Scan Now</button>
+</form>
+<table>
+  <thead><tr><th>Date</th><th>Status</th><th>Score</th><th>Triggered By</th><th></th></tr></thead>
+  <tbody>
+    {% for scan in scans %}
+    <tr>
+      <td>{{ scan.scheduled_at.strftime('%Y-%m-%d') }}</td>
+      <td>{{ scan.status }}</td>
+      <td>{{ scan.security_score if scan.security_score is not none else '—' }}</td>
+      <td>{{ scan.triggered_by }}</td>
+      <td>
+        {% if scan.status == 'completed' %}
+          <a href="{{ url_for('findings.list_findings', account_id=account.id, scan_id=scan.id) }}">View Findings</a>
+          &nbsp;
+          <a href="{{ url_for('export.export_pdf', account_id=account.id, scan_id=scan.id) }}">Export PDF</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

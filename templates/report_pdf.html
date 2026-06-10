@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Security Report</title></head>
+<body>
+  <h1>CyberProtect Security Report</h1>
+  <p><strong>Business:</strong> {{ scan.account.business.name }}</p>
+  <p><strong>Domain:</strong> {{ scan.account.domain_url }}</p>
+  <p><strong>Scan Date:</strong> {{ scan.completed_at.strftime('%Y-%m-%d %H:%M UTC') }}</p>
+  <p><strong>Security Score:</strong> {{ scan.security_score }}/100</p>
+
+  <h2>Findings</h2>
+  {% for f in findings %}
+  <div>
+    <h3>[{{ f.severity | upper }}] {{ f.title }}</h3>
+    <p><strong>URL:</strong> {{ f.affected_url }}</p>
+    <p>{{ f.description }}</p>
+    <p><strong>Remediation:</strong><br>{{ f.remediation_steps }}</p>
+    <p><strong>SOC 2 Controls:</strong> {{ f.soc2_controls | join(', ') }}</p>
+  </div>
+  {% endfor %}
+
+  <hr>
+  <p><em>Disclaimer: CyberProtect findings are informational and do not constitute a formal security audit or SOC 2 certification. This report is provided as evidence of security monitoring activity only.</em></p>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — CyberProtect{% endblock %}
+{% block content %}
+<h1>Your Accounts</h1>
+{% if memberships %}
+  {% for m in memberships %}
+    <div class="account-card">
+      <h2>{{ m.account.name }}</h2>
+      <p>{{ m.account.domain_url }} &mdash; <em>{{ m.role }}</em></p>
+      <a href="{{ url_for('scans.list_scans', account_id=m.account_id) }}">View Scans</a>
+      {% if m.role == 'owner' %}
+        <a href="{{ url_for('team.manage_team', account_id=m.account_id) }}">Manage Team</a>
+      {% endif %}
+    </div>
+  {% endfor %}
+{% else %}
+  <p>No accounts yet.</p>
+{% endif %}
+{% endblock %}

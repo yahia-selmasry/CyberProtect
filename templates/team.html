@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Team Management{% endblock %}
+{% block content %}
+<h1>Team Members</h1>
+<form method="POST" action="{{ url_for('team.invite_member', account_id=account_id) }}">
+  <label>Invite by email <input type="email" name="email" required></label>
+  <button type="submit">Invite</button>
+</form>
+<table>
+  <thead><tr><th>Email</th><th>Role</th><th>Joined</th><th></th></tr></thead>
+  <tbody>
+    {% for m in members %}
+    <tr>
+      <td>{{ m.user.email }}</td>
+      <td>{{ m.role }}</td>
+      <td>{{ m.invited_at.strftime('%Y-%m-%d') }}</td>
+      <td>
+        {% if m.role != 'owner' %}
+          <form method="POST" action="{{ url_for('team.revoke_member', account_id=account_id, membership_id=m.id) }}">
+            <button type="submit" onclick="return confirm('Revoke access immediately?')">Revoke</button>
+          </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

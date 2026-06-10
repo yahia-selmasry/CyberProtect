@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Findings — Scan {{ scan.id[:8] }}{% endblock %}
+{% block content %}
+<h1>Scan Report</h1>
+<p>Score: <strong>{{ scan.security_score }}/100</strong> &mdash; {{ scan.completed_at.strftime('%Y-%m-%d %H:%M') }}</p>
+
+{% if findings %}
+  {% for f in findings %}
+  <div class="finding finding-{{ f.severity }}">
+    <h3>[{{ f.severity | upper }}] {{ f.title }}</h3>
+    <p><strong>URL:</strong> {{ f.affected_url }}</p>
+    <p>{{ f.description }}</p>
+    <details>
+      <summary>Remediation Steps</summary>
+      <pre>{{ f.remediation_steps }}</pre>
+    </details>
+    <p><strong>SOC 2:</strong> {{ f.soc2_controls | join(', ') }}</p>
+  </div>
+  {% endfor %}
+{% else %}
+  <p>No findings — your site looks clean!</p>
+{% endif %}
+{% endblock %}

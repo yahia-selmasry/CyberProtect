@@ -1,0 +1,23 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; max-width: 960px; margin: 0 auto; padding: 1rem; }
+nav { display: flex; gap: 1rem; align-items: center; padding: .75rem 0; border-bottom: 1px solid #ddd; margin-bottom: 1.5rem; }
+nav strong { margin-right: auto; }
+h1 { margin-bottom: 1rem; }
+h2 { margin-bottom: .5rem; }
+label { display: block; margin-bottom: .5rem; }
+input { display: block; width: 100%; padding: .4rem; margin-top: .25rem; border: 1px solid #ccc; border-radius: 4px; }
+button { padding: .5rem 1rem; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+button:hover { background: #1d4ed8; }
+a { color: #2563eb; }
+table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+th, td { text-align: left; padding: .5rem; border-bottom: 1px solid #eee; }
+.flash { background: #fef3c7; border: 1px solid #fbbf24; padding: .5rem 1rem; border-radius: 4px; margin-bottom: 1rem; }
+.account-card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+.finding { border-left: 4px solid #ccc; padding: .75rem 1rem; margin-bottom: 1rem; border-radius: 4px; }
+.finding-critical { border-color: #dc2626; background: #fef2f2; }
+.finding-high { border-color: #f97316; background: #fff7ed; }
+.finding-medium { border-color: #eab308; background: #fefce8; }
+.finding-low { border-color: #3b82f6; background: #eff6ff; }
+.finding-informational { border-color: #9ca3af; background: #f9fafb; }
+details summary { cursor: pointer; font-weight: 600; margin: .5rem 0; }
+pre { white-space: pre-wrap; background: #f3f4f6; padding: .5rem; border-radius: 4px; }

@@ -1,0 +1,14 @@
+flask
+flask-login
+flask-sqlalchemy
+werkzeug
+psycopg2-binary
+gunicorn
+celery
+redis
+twilio
+sendgrid
+weasyprint
+cryptography
+pytest
+pytest-flask
