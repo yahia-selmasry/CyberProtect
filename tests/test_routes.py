@@ -1,5 +1,7 @@
 import sys
 import os
+import io
+import csv
 import tempfile
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -39,8 +41,9 @@ def _make_app(db_path):
     from routes.team import team_bp
     from routes.export import export_bp
     from routes.time_entry import time_entry_bp
+    from routes.import_csv import import_bp
 
-    for bp in (auth_bp, dashboard_bp, scans_bp, findings_bp, team_bp, export_bp, time_entry_bp):
+    for bp in (auth_bp, dashboard_bp, scans_bp, findings_bp, team_bp, export_bp, time_entry_bp, import_bp):
         if bp.name not in app.blueprints:
             app.register_blueprint(bp)
 
@@ -349,3 +352,110 @@ def test_team_page_shows_pb_and_team_fastest(auth_client):
     assert b"4:25.00" in resp.data
     # "Team fastest" label present
     assert b"Team fastest" in resp.data
+
+
+# ---------------------------------------------------------------------------
+# CSV import tests
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def athlete_client(auth_client):
+    """Returns (client_logged_in_as_athlete_a, athlete_a_id, app)."""
+    app, ids = auth_client
+    c = _login_as(app, ids["athlete_a_track_id"])
+    return c, ids["athlete_a_id"], app
+
+
+def _make_csv(rows) -> bytes:
+    """Encode a list of row dicts as a CSV bytes object with Athletic.net headers."""
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=["Date", "Meet", "Event", "Mark", "Place", "Team"])
+    writer.writeheader()
+    writer.writerows(rows)
+    return buf.getvalue().encode()
+
+
+def test_import_get_renders_form(athlete_client):
+    c, _, _ = athlete_client
+    resp = c.get("/import")
+    assert resp.status_code == 200
+    assert b"Import" in resp.data
+
+
+def test_import_csv_inserts_results(athlete_client):
+    c, athlete_id, app = athlete_client
+
+    csv_bytes = _make_csv([
+        {"Date": "2026-05-10", "Meet": "State Championship", "Event": "1 Mile Run",
+         "Mark": "4:32.10", "Place": "3", "Team": "Westview"},
+        {"Date": "2026-05-11", "Meet": "Regionals", "Event": "5000 Meters",
+         "Mark": "16:45.00", "Place": "1", "Team": "Westview"},
+    ])
+
+    data = {"csv_file": (io.BytesIO(csv_bytes), "results.csv")}
+    resp = c.post("/import", data=data, content_type="multipart/form-data", follow_redirects=False)
+
+    assert resp.status_code == 302
+
+    from database import Result
+    with app.app_context():
+        mile_result = Result.query.filter_by(athlete_id=athlete_id, event="1600m").first()
+        assert mile_result is not None
+        assert abs(mile_result.time_seconds - 272.10) < 0.001
+        assert mile_result.meet_name == "State Championship"
+        assert mile_result.session_type == "meet"
+        assert mile_result.is_personal_best is True
+
+        xc_result = Result.query.filter_by(athlete_id=athlete_id, event="5K XC").first()
+        assert xc_result is not None
+        assert abs(xc_result.time_seconds - 1005.00) < 0.001
+        assert xc_result.meet_name == "Regionals"
+
+
+def test_import_skips_bad_mark_and_unknown_event(athlete_client):
+    c, athlete_id, app = athlete_client
+
+    csv_bytes = _make_csv([
+        {"Date": "2026-05-10", "Meet": "Meet A", "Event": "1 Mile Run",
+         "Mark": "not-a-time", "Place": "", "Team": ""},
+        {"Date": "2026-05-10", "Meet": "Meet A", "Event": "Pole Vault",
+         "Mark": "4:32.10", "Place": "", "Team": ""},
+        {"Date": "2026-05-12", "Meet": "Meet B", "Event": "800 Meters",
+         "Mark": "2:05.50", "Place": "2", "Team": ""},
+    ])
+
+    data = {"csv_file": (io.BytesIO(csv_bytes), "results.csv")}
+    resp = c.post("/import", data=data, content_type="multipart/form-data", follow_redirects=True)
+
+    assert resp.status_code == 200
+    assert b"Imported 1" in resp.data
+    assert b"2 rows skipped" in resp.data
+
+    from database import Result
+    with app.app_context():
+        count = Result.query.filter_by(athlete_id=athlete_id).count()
+        assert count == 1
+
+
+def test_import_no_file_flashes_error(athlete_client):
+    c, _, _ = athlete_client
+    resp = c.post("/import", data={}, content_type="multipart/form-data", follow_redirects=True)
+    assert resp.status_code == 200
+    assert b"select a CSV" in resp.data
+
+
+def test_import_blocked_for_coach(auth_client):
+    app, ids = auth_client
+    c = _login_as(app, ids["coach_track_id"])
+    csv_bytes = _make_csv([
+        {"Date": "2026-05-10", "Meet": "X", "Event": "1 Mile Run",
+         "Mark": "4:32.10", "Place": "", "Team": ""},
+    ])
+    data = {"csv_file": (io.BytesIO(csv_bytes), "results.csv")}
+    resp = c.post("/import", data=data, content_type="multipart/form-data", follow_redirects=True)
+    # Coach has no linked athlete — should flash an error, not insert anything
+    assert b"Only athletes" in resp.data
+
+    from database import Result
+    with app.app_context():
+        assert Result.query.count() == 0

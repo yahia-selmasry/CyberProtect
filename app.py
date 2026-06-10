@@ -31,6 +31,7 @@ from routes.findings import findings_bp
 from routes.team import team_bp
 from routes.export import export_bp
 from routes.time_entry import time_entry_bp
+from routes.import_csv import import_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(dashboard_bp)
@@ -39,8 +40,10 @@ app.register_blueprint(findings_bp)
 app.register_blueprint(team_bp)
 app.register_blueprint(export_bp)
 app.register_blueprint(time_entry_bp)
+app.register_blueprint(import_bp)
+
+with app.app_context():
+    db.create_all()
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)

@@ -51,3 +51,9 @@
 | GET | /athlete/<id> | login required; athlete sees own only, coach sees any | Athlete dashboard: all results table + Chart.js performance chart |
 | GET | /athlete/<id>/chart-data?event=<event> | login required; athlete sees own only | JSON: `{"labels": [...], "times": [...]}` for the given event |
 | GET | /athlete/<id>/compare?event=<event> | login required; athlete sees own only | Meet vs practice comparison chart and summary stats |
+
+## CSV Import
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | /import | login required | Render Athletic.net CSV upload form |
+| POST | /import | login required (athlete only) | Parse uploaded CSV, insert results for the logged-in athlete, recalculate PBs, flash summary |

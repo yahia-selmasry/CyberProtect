@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Import Athletic.net Results{% endblock %}
+{% block content %}
+<h2>Import Athletic.net Results</h2>
+
+<p>Export your results from the <strong>Athletic.net Data Extractor</strong> Chrome Extension, then upload the CSV here.</p>
+<p>Expected columns: <code>Date, Meet, Event, Mark, Place, Team</code></p>
+
+<form method="POST" action="{{ url_for('import_csv.import_submit') }}" enctype="multipart/form-data">
+  <div class="form-group">
+    <label for="csv_file">CSV File</label>
+    <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
+  </div>
+
+  <button type="submit">Import Results</button>
+  <a href="{{ url_for('time_entry.add_time_form') }}">Cancel</a>
+</form>
+
+<hr>
+<h3>Event Name Mapping</h3>
+<table>
+  <thead>
+    <tr><th>Athletic.net Name</th><th>Imported As</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1 Mile Run</td><td>1600m</td></tr>
+    <tr><td>1600 Meters</td><td>1600m</td></tr>
+    <tr><td>800 Meters</td><td>800m</td></tr>
+    <tr><td>3200 Meters / 2 Mile Run</td><td>3200m</td></tr>
+    <tr><td>5000 Meters / 5K</td><td>5K XC</td></tr>
+    <tr><td>10000 Meters / 10K</td><td>10K XC</td></tr>
+  </tbody>
+</table>
+{% endblock %}
