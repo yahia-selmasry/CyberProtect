@@ -21,3 +21,9 @@ th, td { text-align: left; padding: .5rem; border-bottom: 1px solid #eee; }
 .finding-informational { border-color: #9ca3af; background: #f9fafb; }
 details summary { cursor: pointer; font-weight: 600; margin: .5rem 0; }
 pre { white-space: pre-wrap; background: #f3f4f6; padding: .5rem; border-radius: 4px; }
+.btn { display: inline-block; padding: .5rem 1.1rem; border: 1px solid #d1d5db; border-radius: 4px; background: #fff; color: #374151; text-decoration: none; cursor: pointer; font-size: .95rem; }
+.btn:hover { background: #f3f4f6; }
+.btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+.form-group { margin-bottom: 1.25rem; }
+.form-group small { color: #6b7280; font-size: .85rem; display: block; margin-top: .25rem; }
