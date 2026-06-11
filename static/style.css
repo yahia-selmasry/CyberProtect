@@ -27,3 +27,14 @@ pre { white-space: pre-wrap; background: #f3f4f6; padding: .5rem; border-radius:
 .btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
 .form-group { margin-bottom: 1.25rem; }
 .form-group small { color: #6b7280; font-size: .85rem; display: block; margin-top: .25rem; }
+.checklist-table { width: 100%; border-collapse: collapse; margin-top: .5rem; }
+.checklist-table th, .checklist-table td { padding: .6rem .75rem; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+.checklist-table th { background: #f9fafb; font-weight: 600; }
+.check-pass { color: #16a34a; font-weight: 600; }
+.check-fail { color: #dc2626; font-weight: 600; }
+.severity-badge { display: inline-block; padding: .1rem .4rem; border-radius: 3px; font-size: .75rem; font-weight: 600; text-transform: uppercase; margin-right: .25rem; }
+.severity-critical { background: #fee2e2; color: #b91c1c; }
+.severity-high { background: #ffedd5; color: #c2410c; }
+.severity-medium { background: #fef9c3; color: #a16207; }
+.severity-low { background: #dbeafe; color: #1d4ed8; }
+.severity-informational { background: #f3f4f6; color: #374151; }

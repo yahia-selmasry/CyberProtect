@@ -2,8 +2,44 @@
 {% block title %}Findings — Scan {{ scan.id[:8] }}{% endblock %}
 {% block content %}
 <h1>Scan Report</h1>
-<p>Score: <strong>{{ scan.security_score }}/100</strong> &mdash; {{ scan.completed_at.strftime('%Y-%m-%d %H:%M') }}</p>
+<p>Score: <strong>{{ scan.security_score }}/100</strong> &mdash; {{ scan.completed_at.strftime('%Y-%m-%d %H:%M') if scan.completed_at else 'In progress' }}</p>
 
+<h2 style="margin-top:1.5rem;">Security Checklist</h2>
+<p style="color:#6b7280;margin-bottom:1rem;">What was scanned and whether any issues were found.</p>
+<table class="checklist-table">
+  <thead>
+    <tr>
+      <th>Category</th>
+      <th>Status</th>
+      <th>Issues Found</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for name, passed, matches in checklist %}
+    <tr>
+      <td>{{ name }}</td>
+      <td>
+        {% if passed %}
+          <span class="check-pass">&#10003; Pass</span>
+        {% else %}
+          <span class="check-fail">&#10007; Fail</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if matches %}
+          {% for f in matches %}
+            <span class="severity-badge severity-{{ f.severity }}">{{ f.severity }}</span> {{ f.title }}<br>
+          {% endfor %}
+        {% else %}
+          <span style="color:#6b7280">None</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2 style="margin-top:2rem;">All Findings</h2>
 {% if findings %}
   {% for f in findings %}
   <div class="finding finding-{{ f.severity }}">
