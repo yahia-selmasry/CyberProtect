@@ -5,6 +5,12 @@ from database import db, User, TrackUser, Athlete
 auth_bp = Blueprint("auth", __name__)
 
 
+@auth_bp.route("/pricing")
+def pricing():
+    """Public pricing page."""
+    return render_template("pricing.html")
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":

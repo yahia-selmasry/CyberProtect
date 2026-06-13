@@ -38,3 +38,34 @@ pre { white-space: pre-wrap; background: #f3f4f6; padding: .5rem; border-radius:
 .severity-medium { background: #fef9c3; color: #a16207; }
 .severity-low { background: #dbeafe; color: #1d4ed8; }
 .severity-informational { background: #f3f4f6; color: #374151; }
+
+/* Pricing page */
+.pricing-wrapper { max-width: 600px; margin: 0 auto; text-align: center; padding: 2rem 0; }
+.pricing-sub { color: #6b7280; margin-bottom: 2rem; }
+.pricing-card { border: 2px solid #2563eb; border-radius: 12px; padding: 2rem; position: relative; text-align: left; }
+.pricing-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: #2563eb; color: #fff; font-size: .75rem; font-weight: 700; padding: .2rem .75rem; border-radius: 99px; white-space: nowrap; }
+.pricing-plan-name { font-size: 1.2rem; margin-bottom: .75rem; }
+.pricing-amount { font-size: 3rem; font-weight: 700; margin-bottom: 1.25rem; line-height: 1; }
+.pricing-dollar { font-size: 1.5rem; vertical-align: super; }
+.pricing-period { font-size: 1rem; font-weight: 400; color: #6b7280; }
+.pricing-features { list-style: none; margin-bottom: 1.5rem; }
+.pricing-features li { padding: .35rem 0; color: #374151; }
+.btn-lg { padding: .75rem 1.5rem; font-size: 1rem; width: 100%; text-align: center; display: block; }
+.pricing-trial-note { color: #6b7280; font-size: .85rem; margin-top: .75rem; text-align: center; }
+.pricing-faq { margin-top: 3rem; text-align: left; }
+.pricing-faq h2 { margin-bottom: 1rem; }
+.pricing-faq details { border-bottom: 1px solid #e5e7eb; padding: .75rem 0; }
+.pricing-faq details p { color: #6b7280; margin-top: .5rem; line-height: 1.6; }
+
+/* Billing page */
+.billing-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; }
+.billing-row { display: flex; justify-content: space-between; align-items: center; padding: .5rem 0; border-bottom: 1px solid #f3f4f6; }
+.billing-row:last-child { border-bottom: none; }
+.billing-label { font-weight: 600; color: #374151; }
+.billing-cta { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }
+.billing-cta p { margin-bottom: .75rem; color: #374151; }
+.sub-status { font-weight: 600; }
+.sub-status-active { color: #16a34a; }
+.sub-status-trialing { color: #2563eb; }
+.sub-status-past_due { color: #dc2626; }
+.sub-status-cancelled { color: #9ca3af; }

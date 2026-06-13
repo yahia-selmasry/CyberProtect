@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Pricing — CyberProtect{% endblock %}
+{% block content %}
+<div class="pricing-wrapper">
+  <h1>Simple, transparent pricing</h1>
+  <p class="pricing-sub">One plan. Everything included. Cancel any time.</p>
+
+  <div class="pricing-card">
+    <div class="pricing-badge">Most Popular</div>
+    <h2 class="pricing-plan-name">CyberProtect Standard</h2>
+    <div class="pricing-amount">
+      <span class="pricing-dollar">$</span>49<span class="pricing-period">/month</span>
+    </div>
+    <ul class="pricing-features">
+      <li>&#10003; Automated monthly web app scans</li>
+      <li>&#10003; Real-time email + SMS + in-app alerts</li>
+      <li>&#10003; Full findings report with severity ratings</li>
+      <li>&#10003; Step-by-step remediation instructions</li>
+      <li>&#10003; SOC 2 control mapping per finding</li>
+      <li>&#10003; Historical scan comparison &amp; trend tracking</li>
+      <li>&#10003; PDF export for auditors and insurers</li>
+      <li>&#10003; Team member access management</li>
+      <li>&#10003; Cancel any time — no contracts</li>
+    </ul>
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary btn-lg">Go to Dashboard</a>
+    {% else %}
+      <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">Start Free Trial</a>
+      <p class="pricing-trial-note">14-day free trial — no credit card required to start</p>
+    {% endif %}
+  </div>
+
+  <div class="pricing-faq">
+    <h2>Frequently asked questions</h2>
+    <details>
+      <summary>What exactly gets scanned?</summary>
+      <p>CyberProtect scans the domain URL you register for missing security headers, HTTPS enforcement, open directory listings, exposed sensitive files (.env, admin panels), insecure cookie flags, and verbose error page disclosure. New checks are added regularly.</p>
+    </details>
+    <details>
+      <summary>When does billing start?</summary>
+      <p>Your 14-day free trial starts the moment you register. No credit card is needed until the trial ends. You'll receive an email reminder before you're charged.</p>
+    </details>
+    <details>
+      <summary>Can I cancel?</summary>
+      <p>Yes — cancel any time from your billing page. Your access continues until the end of the current billing period.</p>
+    </details>
+    <details>
+      <summary>Is this a real security audit?</summary>
+      <p>CyberProtect performs automated passive scanning. It is not a penetration test or formal audit. Reports are intended as evidence of ongoing security monitoring and SOC 2 alignment, not as a certification.</p>
+    </details>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Billing — {{ account.name }}{% endblock %}
+{% block content %}
+<h1>Billing</h1>
+<p style="color:#6b7280;margin-bottom:1.5rem;">{{ account.name }} &mdash; {{ account.domain_url }}</p>
+
+<div class="billing-card">
+  <div class="billing-row">
+    <span class="billing-label">Plan</span>
+    <span>CyberProtect Standard &mdash; $49/month</span>
+  </div>
+  <div class="billing-row">
+    <span class="billing-label">Status</span>
+    <span class="sub-status sub-status-{{ business.subscription_status }}">
+      {% if business.subscription_status == 'active' %}Active
+      {% elif business.subscription_status == 'trialing' %}Free Trial
+      {% elif business.subscription_status == 'past_due' %}Past Due &mdash; payment failed
+      {% elif business.subscription_status == 'cancelled' %}Cancelled
+      {% else %}{{ business.subscription_status }}{% endif %}
+    </span>
+  </div>
+</div>
+
+{% if business.subscription_status in ('active', 'trialing') %}
+  {% if business.subscription_status == 'trialing' %}
+  <div class="billing-cta">
+    <p>Your free trial is active. Subscribe now to keep access after the trial ends.</p>
+    <form method="POST" action="{{ url_for('billing.create_checkout', account_id=account.id) }}">
+      <button type="submit" class="btn btn-primary">Subscribe — $49/month</button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if business.stripe_customer_id %}
+  <div style="margin-top:1rem;">
+    <form method="POST" action="{{ url_for('billing.customer_portal', account_id=account.id) }}">
+      <button type="submit" class="btn">Manage or Cancel Subscription</button>
+    </form>
+    <p style="color:#6b7280;font-size:.85rem;margin-top:.5rem;">Opens the Stripe billing portal where you can update payment method or cancel.</p>
+  </div>
+  {% endif %}
+
+{% elif business.subscription_status in ('cancelled', 'past_due') %}
+  <div class="billing-cta">
+    {% if business.subscription_status == 'past_due' %}
+      <p>Your last payment failed. Re-subscribe to restore access to scans and reports.</p>
+    {% else %}
+      <p>Your subscription is cancelled. Re-subscribe to resume monthly scans.</p>
+    {% endif %}
+    <form method="POST" action="{{ url_for('billing.create_checkout', account_id=account.id) }}">
+      <button type="submit" class="btn btn-primary">Re-subscribe — $49/month</button>
+    </form>
+  </div>
+{% endif %}
+
+<div style="margin-top:2rem;">
+  <a href="{{ url_for('scans.list_scans', account_id=account.id) }}">&larr; Back to Scans</a>
+</div>
+{% endblock %}

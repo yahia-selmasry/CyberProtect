@@ -12,3 +12,4 @@ weasyprint
 cryptography
 pytest
 pytest-flask
+stripe

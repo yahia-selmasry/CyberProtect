@@ -10,6 +10,7 @@
       <a href="{{ url_for('scans.list_scans', account_id=m.account_id) }}">View Scans</a>
       {% if m.role == 'owner' %}
         <a href="{{ url_for('team.manage_team', account_id=m.account_id) }}">Manage Team</a>
+        <a href="{{ url_for('billing.billing', account_id=m.account_id) }}">Billing</a>
       {% endif %}
     </div>
   {% endfor %}

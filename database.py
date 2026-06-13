@@ -33,6 +33,8 @@ class Business(db.Model):
     subscription_status = db.Column(db.Enum("active", "trialing", "cancelled", "past_due", name="sub_status"), default="trialing")
     subscription_plan = db.Column(db.String(50), default="v1_standard")
 
+    stripe_customer_id = db.Column(db.String(255), nullable=True)
+
     accounts = db.relationship("Account", back_populates="business", lazy=True)
 
 

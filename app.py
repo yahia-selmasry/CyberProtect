@@ -32,6 +32,7 @@ from routes.team import team_bp
 from routes.export import export_bp
 from routes.time_entry import time_entry_bp
 from routes.import_csv import import_bp
+from routes.billing import billing_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(dashboard_bp)
@@ -41,6 +42,7 @@ app.register_blueprint(team_bp)
 app.register_blueprint(export_bp)
 app.register_blueprint(time_entry_bp)
 app.register_blueprint(import_bp)
+app.register_blueprint(billing_bp)
 
 with app.app_context():
     db.create_all()

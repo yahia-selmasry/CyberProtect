@@ -27,6 +27,9 @@ def list_scans(account_id):
 @login_required
 def trigger_scan(account_id):
     account = _get_account_or_403(account_id)
+    if account.business.subscription_status not in ("active", "trialing"):
+        flash("Your subscription is inactive. Please subscribe to run scans.")
+        return redirect(url_for("billing.billing", account_id=account_id))
     scan = Scan(
         account_id=account_id,
         scheduled_at=datetime.utcnow(),
