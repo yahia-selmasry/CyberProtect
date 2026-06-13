@@ -37,7 +37,7 @@ def billing(account_id):
 @billing_bp.route("/accounts/<account_id>/billing/checkout", methods=["POST"])
 @login_required
 def create_checkout(account_id):
-    """Start a Stripe Checkout session for the $49/mo plan."""
+    """Start a Stripe Checkout session for the $10/mo plan."""
     m = _get_owner_membership(account_id)
     account = m.account
     business = account.business

@@ -46,6 +46,19 @@ app.register_blueprint(billing_bp)
 
 with app.app_context():
     db.create_all()
+    # Add columns introduced after initial deploy; safe to re-run (errors mean column exists)
+    _new_cols = [
+        "ALTER TABLE businesses ADD COLUMN subscription_status VARCHAR(20) DEFAULT 'trialing'",
+        "ALTER TABLE businesses ADD COLUMN subscription_plan VARCHAR(50) DEFAULT 'v1_standard'",
+        "ALTER TABLE businesses ADD COLUMN stripe_customer_id VARCHAR(255)",
+    ]
+    with db.engine.connect() as _conn:
+        for _sql in _new_cols:
+            try:
+                _conn.execute(db.text(_sql))
+                _conn.commit()
+            except Exception:
+                _conn.rollback()
 
 if __name__ == "__main__":
     app.run(debug=True)

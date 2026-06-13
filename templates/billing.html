@@ -7,7 +7,7 @@
 <div class="billing-card">
   <div class="billing-row">
     <span class="billing-label">Plan</span>
-    <span>CyberProtect Standard &mdash; $49/month</span>
+    <span>CyberProtect Standard &mdash; $10/month</span>
   </div>
   <div class="billing-row">
     <span class="billing-label">Status</span>
@@ -26,7 +26,7 @@
   <div class="billing-cta">
     <p>Your free trial is active. Subscribe now to keep access after the trial ends.</p>
     <form method="POST" action="{{ url_for('billing.create_checkout', account_id=account.id) }}">
-      <button type="submit" class="btn btn-primary">Subscribe — $49/month</button>
+      <button type="submit" class="btn btn-primary">Subscribe — $10/month</button>
     </form>
   </div>
   {% endif %}
@@ -48,7 +48,7 @@
       <p>Your subscription is cancelled. Re-subscribe to resume monthly scans.</p>
     {% endif %}
     <form method="POST" action="{{ url_for('billing.create_checkout', account_id=account.id) }}">
-      <button type="submit" class="btn btn-primary">Re-subscribe — $49/month</button>
+      <button type="submit" class="btn btn-primary">Re-subscribe — $10/month</button>
     </form>
   </div>
 {% endif %}
