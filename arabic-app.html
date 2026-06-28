@@ -1,0 +1,2626 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تَعَلَّمْ العَرَبِيَّة</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body { background: #f0f4ff; font-family: 'Nunito', system-ui, sans-serif; min-height: 100vh; }
+    button { font-family: inherit; cursor: pointer; transition: transform .1s, box-shadow .1s; }
+    button:active { transform: scale(0.97); }
+    @keyframes pop { 0%{transform:scale(.8);opacity:0} 70%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
+    @keyframes slideUp { from{transform:translateY(24px);opacity:0} to{transform:translateY(0);opacity:1} }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+    .pop { animation: pop .35s ease forwards; }
+    .slide { animation: slideUp .3s ease forwards; }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background:#c4b5fd; border-radius:3px; }
+    @media print {
+      body { background: #fff; }
+      #print-hide, .bottom-nav-bar { display: none !important; }
+      #print-content { display: block !important; }
+      .print-worksheet { font-family: 'Noto Naskh Arabic', serif; }
+      @page { margin: 20mm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script>
+"use strict";
+const e = React.createElement;
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
+
+// ── Palette ───────────────────────────────────────────────────────────────────
+const P = {
+  indigo:"#6366f1", indigoL:"#e0e7ff", indigoD:"#4338ca",
+  purple:"#a855f7", purpleL:"#f3e8ff",
+  teal:"#14b8a6",   tealL:"#ccfbf1",
+  green:"#22c55e",  greenL:"#dcfce7",  greenD:"#15803d",
+  red:"#ef4444",    redL:"#fee2e2",
+  orange:"#f97316", orangeL:"#ffedd5",
+  gold:"#eab308",   goldL:"#fef9c3",
+  sky:"#0ea5e9",    skyL:"#e0f2fe",
+  rose:"#f43f5e",   roseL:"#ffe4e6",
+  gray:"#6b7280",   grayL:"#f3f4f6",   grayLighter:"#f8fafc",
+};
+
+const CATEGORY = {
+  story:   { label:"قِصَّة",    color:P.indigo,  bg:P.indigoL,  emoji:"📖" },
+  islamic: { label:"إِسْلَامِيَّات", color:P.teal, bg:P.tealL,    emoji:"🌙" },
+  quran:   { label:"قُرْآن",    color:P.green,   bg:P.greenL,   emoji:"📗" },
+};
+
+const AF = { fontFamily:"'Noto Naskh Arabic', serif" };
+
+// ── SVG icons ─────────────────────────────────────────────────────────────────
+const svg = (paths, s=20, col="currentColor", extra={}) =>
+  e("svg",{width:s,height:s,viewBox:"0 0 24 24",fill:"none",stroke:col,
+    strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round",...extra},
+    ...(Array.isArray(paths)?paths:[paths]).map((d,i)=>e("path",{key:i,d})));
+const polyIcon = (pts, s, col) =>
+  e("svg",{width:s,height:s,viewBox:"0 0 24 24",fill:col,stroke:col,strokeWidth:1},
+    e("polygon",{points:pts}));
+
+const I = {
+  home:    (s,c)=>svg(["M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z","M9 22V12h6v10"],s,c),
+  back:    (s,c)=>svg("M19 12H5M12 5l-7 7 7 7",s,c),
+  next:    (s,c)=>svg("M5 12h14M12 5l7 7-7 7",s,c),
+  x:       (s,c)=>svg(["M18 6L6 18","M6 6l12 12"],s,c),
+  check:   (s,c)=>svg(["M22 11.08V12a10 10 0 1 1-5.93-9.14","M22 4L12 14.01l-3-3"],s,c),
+  xcircle: (s,c)=>svg(["M15 9l-6 6","M9 9l6 6","M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z"],s,c),
+  star:    (s,f,c)=>polyIcon("12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2",s,f?c||P.gold:"none"),
+  zap:     (s,c)=>svg("M13 2L3 14h9l-1 8 10-12h-9l1-8z",s,c),
+  trend:   (s,c)=>svg(["M23 6l-9.5 9.5-5-5L1 18","M17 6h6v6"],s,c),
+  book:    (s,c)=>svg(["M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z","M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"],s,c),
+  lock:    (s,c)=>svg(["M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z","M7 11V7a5 5 0 0 1 10 0v4"],s,c),
+  printer: (s,c)=>svg(["M6 9V2h12v7","M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2","M6 14h12v8H6z"],s,c),
+};
+
+// ── localStorage ──────────────────────────────────────────────────────────────
+const LS = "arabic-app-v2";
+const loadP  = () => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch { return {}; } };
+const saveP  = d  => { try { localStorage.setItem(LS, JSON.stringify(d)); } catch {} };
+const shuffle = a => [...a].sort(() => Math.random() - .5);
+const strip   = w => w.replace(/[ً-ْ]/g,"").trim();
+
+// ── Fallback content — Islamic-themed Arabic lessons ──────────────────────────
+const FALLBACK_LESSONS = [
+  {
+    id:"bismillah-1", week:1, title:"بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيم", category:"quran", level:1, emoji:"📗",
+    passage:"نَبْدَأُ كُلَّ عَمَلٍ بِاسْمِ اللهِ. نَقُولُ: بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيم. اللهُ هُوَ الرَّحْمٰنُ الَّذِي يَرْحَمُ جَمِيعَ النَّاس. وَهُوَ الرَّحِيمُ الَّذِي يَرْحَمُ المُؤْمِنِين. نَقُولُ البَسْمَلَةَ قَبْلَ الطَّعَامِ وَالدِّرَاسَةِ وَكُلِّ عَمَل.",
+    vocabulary:[
+      {word:"نَبْدَأُ",   meaningAr:"نَشْرَعُ فِي شَيْءٍ مِنْ أَوَّلِه",          meaningEn:"we begin",    root:"ب-د-أ", dialectEgy:"بنبدأ"},
+      {word:"الرَّحْمٰنُ",meaningAr:"مِنْ أَسْمَاءِ اللهِ: كَثِيرُ الرَّحْمَة",   meaningEn:"The Most Gracious", root:"ر-ح-م", dialectEgy:"الرحمن"},
+      {word:"الرَّحِيمُ", meaningAr:"مِنْ أَسْمَاءِ اللهِ: دَائِمُ الرَّحْمَة",   meaningEn:"The Most Merciful", root:"ر-ح-م", dialectEgy:"الرحيم"},
+      {word:"يَرْحَمُ",  meaningAr:"يُعَامِلُ بِلُطْفٍ وَحُبّ",                   meaningEn:"shows mercy", root:"ر-ح-م", dialectEgy:"بيرحم"},
+      {word:"البَسْمَلَة",meaningAr:"قَوْلُ بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيم",  meaningEn:"saying Bismillah", root:"س-م-و", dialectEgy:"البسملة"},
+    ],
+    comprehension:[
+      {question:"مَاذَا نَقُولُ قَبْلَ كُلِّ عَمَل؟",options:["الحَمْدُ لِلَّه","بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيم","اللهُ أَكْبَر"],answer:1},
+      {question:"مَا مَعْنَى الرَّحْمٰن؟",options:["كَثِيرُ الغَضَب","كَثِيرُ الرَّحْمَة","كَثِيرُ القُوَّة"],answer:1},
+      {question:"مَنْ يَرْحَمُ جَمِيعَ النَّاس؟",options:["النَّبِيُّ","المَلَك","اللهُ الرَّحْمٰن"],answer:2},
+      {question:"مَتَى نَقُولُ البَسْمَلَة؟",options:["عِنْدَ النَّوْم فَقَط","قَبْلَ الطَّعَامِ وَالدِّرَاسَةِ وَكُلِّ عَمَل","بَعْدَ الصَّلَاة فَقَط"],answer:1},
+    ],
+    grammar:[
+      {word:"نَبْدَأُ",   type:"verb", number:"plural"},
+      {word:"اللهُ",      type:"noun", number:"singular"},
+      {word:"النَّاسُ",   type:"noun", number:"plural"},
+      {word:"يَرْحَمُ",  type:"verb", number:"singular"},
+      {word:"المُؤْمِنُونَ",type:"noun",number:"plural"},
+    ],
+    islamicLink:{theme:"البَسْمَلَة (Bismillah)",note:"قَالَ النَّبِيُّ ﷺ: «كُلُّ أَمْرٍ ذِي بَالٍ لَا يُبْدَأُ فِيهِ بِبِسْمِ اللهِ فَهُوَ أَبْتَر». كُلُّ سُورَةٍ فِي القُرْآنِ تَبْدَأُ بِالبَسْمَلَة إِلَّا سُورَةَ التَّوْبَة.",quranRef:"سُورَةُ الفَاتِحَة: ١"},
+  },
+  {
+    id:"fatiha-2", week:1, title:"سُورَةُ الفَاتِحَة", category:"quran", level:1, emoji:"🌟",
+    passage:"سُورَةُ الفَاتِحَةِ هِيَ أُمُّ القُرْآن. نَقْرَأُهَا فِي كُلِّ رَكْعَةٍ مِنَ الصَّلَاة. فِيهَا نَحْمَدُ اللهَ رَبَّ العَالَمِين. وَنَطْلُبُ مِنْهُ أَنْ يَهْدِيَنَا إِلَى الصِّرَاطِ المُسْتَقِيم. هِيَ أَعْظَمُ سُورَةٍ فِي القُرْآنِ الكَرِيم.",
+    vocabulary:[
+      {word:"الفَاتِحَة",  meaningAr:"السُّورَةُ الَّتِي تَفْتَحُ القُرْآن",           meaningEn:"The Opening",   root:"ف-ت-ح", dialectEgy:"الفاتحة"},
+      {word:"رَكْعَة",     meaningAr:"وَحْدَةٌ وَاحِدَةٌ مِنَ الصَّلَاة",              meaningEn:"unit of prayer",root:"ر-ك-ع", dialectEgy:"ركعة"},
+      {word:"نَحْمَدُ",    meaningAr:"نَقُولُ الحَمْدُ لِلَّهِ وَنَشْكُرُه",           meaningEn:"we praise",     root:"ح-م-د", dialectEgy:"بنحمد"},
+      {word:"يَهْدِيَنَا", meaningAr:"يُرْشِدُنَا وَيُوَجِّهُنَا إِلَى الحَقّ",        meaningEn:"guides us",     root:"ه-د-ي", dialectEgy:"يهدينا"},
+      {word:"الصِّرَاطَ",  meaningAr:"الطَّرِيق؛ صِرَاطُ الإِسْلَامِ هُوَ الطَّرِيقُ الصَّحِيح",meaningEn:"the path/way",root:"ص-ر-ط", dialectEgy:"الطريق"},
+    ],
+    comprehension:[
+      {question:"مَا لَقَبُ سُورَةِ الفَاتِحَة؟",options:["سُورَةُ النُّور","أُمُّ القُرْآن","سُورَةُ البَقَرَة"],answer:1},
+      {question:"كَمْ مَرَّةً نَقْرَأُ الفَاتِحَةَ فِي يَوْمٍ وَاحِد؟",options:["مَرَّةً وَاحِدَة","خَمْسَ مَرَّات","سَبْعَ عَشْرَةَ مَرَّة"],answer:2},
+      {question:"مَاذَا نَطْلُبُ فِي الفَاتِحَة؟",options:["المَال","الهِدَايَةَ إِلَى الصِّرَاطِ المُسْتَقِيم","الصِّحَّة"],answer:1},
+      {question:"مَا أَعْظَمُ سُورَةٍ فِي القُرْآن؟",options:["آيَةُ الكُرْسِي","سُورَةُ الفَاتِحَة","سُورَةُ البَقَرَة"],answer:1},
+    ],
+    grammar:[
+      {word:"نَقْرَأُ",   type:"verb",  number:"plural"},
+      {word:"الصَّلَاةُ", type:"noun",  number:"singular"},
+      {word:"نَحْمَدُ",   type:"verb",  number:"plural"},
+      {word:"العَالَمُونَ",type:"noun", number:"plural"},
+      {word:"يَهْدِي",    type:"verb",  number:"singular"},
+    ],
+    islamicLink:{theme:"فَضْلُ الفَاتِحَة (Excellence of Al-Fatiha)",note:"قَالَ النَّبِيُّ ﷺ: «وَالَّذِي نَفْسِي بِيَدِهِ، مَا أُنْزِلَتْ فِي التَّوْرَاةِ وَلَا فِي الإِنْجِيلِ وَلَا فِي الزَّبُورِ وَلَا فِي الفُرْقَانِ مِثْلُهَا». هِيَ السَّبْعُ المَثَانِي.",quranRef:"سُورَةُ الحِجْر: ٨٧"},
+  },
+  {
+    id:"adam-3", week:1, title:"سَيِّدُنَا آدَمُ عليه السلام", category:"islamic", level:1, emoji:"🌿",
+    passage:"آدَمُ عليه السلام هُوَ أَبُو البَشَر. خَلَقَهُ اللهُ مِنَ التُّرَاب. عَلَّمَهُ اللهُ أَسْمَاءَ كُلِّ شَيْء. سَكَنَ آدَمُ وَزَوْجَتُهُ حَوَّاءُ فِي الجَنَّة. لَكِنَّهُمَا نَسِيَا وَأَكَلَا مِنَ الشَّجَرَة. فَتَابَا إِلَى اللهِ فَغَفَرَ لَهُمَا.",
+    vocabulary:[
+      {word:"البَشَر",  meaningAr:"جَمِيعُ النَّاسِ عَلَى الأَرْض",      meaningEn:"humanity/mankind",root:"ب-ش-ر", dialectEgy:"البشر"},
+      {word:"التُّرَاب",meaningAr:"الأَرْضُ الَّتِي نَمْشِي عَلَيْهَا",   meaningEn:"clay/earth/soil",  root:"ت-ر-ب", dialectEgy:"التراب"},
+      {word:"أَسْمَاء", meaningAr:"جَمْعُ اسْم: الكَلِمَةُ الَّتِي تُعَبِّرُ عَنِ الشَّيْء",meaningEn:"names",root:"س-م-و", dialectEgy:"أسماء"},
+      {word:"نَسِيَا",  meaningAr:"فَاتَهُمَا الأَمْرُ وَلَمْ يَتَذَكَّرَاه",meaningEn:"they forgot",    root:"ن-س-ي", dialectEgy:"نسيوا"},
+      {word:"تَابَا",   meaningAr:"رَجَعَا إِلَى اللهِ بِالاسْتِغْفَار",  meaningEn:"they repented",    root:"ت-و-ب", dialectEgy:"تابوا"},
+    ],
+    comprehension:[
+      {question:"مِمَّ خَلَقَ اللهُ آدَم؟",options:["مِنَ المَاء","مِنَ التُّرَاب","مِنَ النَّار"],answer:1},
+      {question:"مَاذَا عَلَّمَ اللهُ آدَم؟",options:["الرِّيَاضِيَّات","أَسْمَاءَ كُلِّ شَيْء","الرَّسْم"],answer:1},
+      {question:"مَاذَا فَعَلَ آدَمُ بَعْدَ أَنْ أَكَلَ مِنَ الشَّجَرَة؟",options:["بَكَى فَقَط","هَرَبَ","تَابَ إِلَى اللهِ"],answer:2},
+      {question:"مَاذَا فَعَلَ اللهُ بَعْدَ التَّوْبَة؟",options:["عَاقَبَه","غَفَرَ لَهُمَا","تَرَكَهُمَا"],answer:1},
+    ],
+    grammar:[
+      {word:"خَلَقَ",    type:"verb", number:"singular"},
+      {word:"التُّرَابُ", type:"noun", number:"singular"},
+      {word:"أَسْمَاءُ", type:"noun", number:"plural"},
+      {word:"نَسِيَا",   type:"verb", number:"plural"},
+      {word:"تَابَا",    type:"verb", number:"plural"},
+    ],
+    islamicLink:{theme:"التَّوْبَة (Repentance)",note:"عَلَّمَنَا اللهُ مِنْ قِصَّةِ آدَمَ أَنَّ الخَطَأَ مِنَ الإِنْسَان، وَالتَّوْبَةُ وَالمَغْفِرَةُ مِنَ اللهِ الكَرِيم. لَا تَيْأَسْ مِنْ رَحْمَةِ اللهِ أَبَدًا.",quranRef:"سُورَةُ البَقَرَة: ٣٧"},
+  },
+  {
+    id:"salah-4", week:1, title:"الصَّلَاةُ نُورٌ", category:"islamic", level:2, emoji:"🕌",
+    passage:"الصَّلَاةُ عِمَادُ الدِّين. يُصَلِّي المُسْلِمُ خَمْسَ صَلَوَاتٍ كُلَّ يَوْم. الصَّلَوَاتُ هِيَ: الفَجْرُ وَالظُّهْرُ وَالعَصْرُ وَالمَغْرِبُ وَالعِشَاء. قَبْلَ الصَّلَاةِ يَتَوَضَّأُ المُسْلِمُ بِالمَاء. قَالَ النَّبِيُّ ﷺ: الصَّلَاةُ نُورٌ.",
+    vocabulary:[
+      {word:"عِمَادُ",    meaningAr:"الأَسَاسُ وَالرُّكْنُ الَّذِي يَقُومُ عَلَيْهِ الشَّيْء", meaningEn:"pillar/foundation",root:"ع-م-د", dialectEgy:"عماد"},
+      {word:"صَلَوَات",  meaningAr:"جَمْعُ صَلَاة: العِبَادَةُ الَّتِي نَتَوَجَّهُ فِيهَا إِلَى اللهِ",meaningEn:"prayers",root:"ص-ل-و", dialectEgy:"صلوات"},
+      {word:"الفَجْرُ",   meaningAr:"وَقْتُ طُلُوعِ الشَّمْسِ وَبِدَايَةُ النَّهَار",           meaningEn:"dawn prayer",      root:"ف-ج-ر", dialectEgy:"الفجر"},
+      {word:"يَتَوَضَّأُ",meaningAr:"يَغْسِلُ أَعْضَاءَهُ اسْتِعْدَادًا لِلصَّلَاة",           meaningEn:"performs ablution", root:"و-ض-أ", dialectEgy:"بيتوضى"},
+      {word:"نُورٌ",      meaningAr:"الضَّوْءُ الَّذِي يُضِيء الأَمَاكِن؛ الصَّلَاةُ تُنِيرُ القَلْب",meaningEn:"light",root:"ن-و-ر", dialectEgy:"نور"},
+    ],
+    comprehension:[
+      {question:"كَمْ صَلَاةً يُصَلِّي المُسْلِمُ كُلَّ يَوْم؟",options:["ثَلَاث","سَبْع","خَمْس"],answer:2},
+      {question:"مَا أَوَّلُ صَلَاةٍ فِي اليَوْم؟",options:["الظُّهْر","الفَجْر","العِشَاء"],answer:1},
+      {question:"بِمَاذَا يَتَوَضَّأُ المُسْلِم؟",options:["بِالتُّرَاب","بِالمَاء","بِالزَّيْت"],answer:1},
+      {question:"مَاذَا قَالَ النَّبِيُّ ﷺ عَنِ الصَّلَاة؟",options:["الصَّلَاةُ نُور","الصَّلَاةُ صَعْبَة","الصَّلَاةُ طَوِيلَة"],answer:0},
+    ],
+    grammar:[
+      {word:"يُصَلِّي",   type:"verb", number:"singular"},
+      {word:"الصَّلَوَاتُ",type:"noun",number:"plural"},
+      {word:"يَتَوَضَّأُ",type:"verb", number:"singular"},
+      {word:"المُسْلِمُ", type:"noun", number:"singular"},
+      {word:"نُورٌ",      type:"noun", number:"singular"},
+    ],
+    islamicLink:{theme:"الصَّلَاة (Prayer — 2nd Pillar of Islam)",note:"الصَّلَاةُ ثَانِي أَرْكَانِ الإِسْلَام. قَالَ اللهُ تَعَالَى: «إِنَّ الصَّلَاةَ تَنْهَى عَنِ الفَحْشَاءِ وَالمُنْكَر». هِيَ صِلَةٌ بَيْنَ العَبْدِ وَرَبِّه.",quranRef:"سُورَةُ العَنْكَبُوت: ٤٥"},
+  },
+
+  {
+    id:"ibrahim-5", week:2, title:"سَيِّدُنَا إِبْرَاهِيمُ عليه السلام", category:"islamic", level:2, emoji:"🔥",
+    passage:"إِبْرَاهِيمُ عليه السلام هُوَ خَلِيلُ الله. كَسَّرَ أَصْنَامَ قَوْمِهِ الَّتِي كَانُوا يَعْبُدُونَهَا. فَأَرَادُوا إِحْرَاقَهُ بِالنَّار. لٰكِنَّ اللهَ أَمَرَ النَّارَ أَنْ تَكُونَ بَرْدًا وَسَلَامًا. وَبَنَى إِبْرَاهِيمُ مَعَ ابْنِهِ إِسْمَاعِيلَ الكَعْبَةَ المُشَرَّفَة.",
+    vocabulary:[
+      {word:"خَلِيلُ الله",meaningAr:"الصَّدِيقُ المَحْبُوبُ عِنْدَ اللهِ",    meaningEn:"Friend of Allah",  root:"خ-ل-ل", dialectEgy:"خليل الله"},
+      {word:"أَصْنَام",   meaningAr:"جَمْعُ صَنَم: تَمَاثِيلُ كَانُوا يَعْبُدُونَهَا",meaningEn:"idols",root:"ص-ن-م", dialectEgy:"أصنام"},
+      {word:"يَعْبُدُونَ",meaningAr:"يُقَدِّمُونَ العِبَادَةَ وَيُطِيعُون",     meaningEn:"they worship",     root:"ع-ب-د", dialectEgy:"بيعبدوا"},
+      {word:"بَرْدًا",    meaningAr:"ضِدُّ الحَرَارَة؛ النَّارُ صَارَتْ بَارِدَة",meaningEn:"cold",             root:"ب-ر-د", dialectEgy:"باردة"},
+      {word:"الكَعْبَة",  meaningAr:"بَيْتُ اللهِ الحَرَامُ فِي مَكَّة",        meaningEn:"The Ka'bah",       root:"ك-ع-ب", dialectEgy:"الكعبة"},
+    ],
+    comprehension:[
+      {question:"مَا لَقَبُ إِبْرَاهِيمَ عليه السلام؟",options:["رَسُولُ الله","خَلِيلُ الله","نَبِيُّ الله فَقَط"],answer:1},
+      {question:"مَاذَا فَعَلَ إِبْرَاهِيمُ بِالأَصْنَام؟",options:["بَاعَهَا","كَسَّرَهَا","تَرَكَهَا"],answer:1},
+      {question:"مَاذَا صَنَعَ اللهُ بِالنَّار؟",options:["أَطْفَأَهَا","جَعَلَهَا أَكْبَر","جَعَلَهَا بَرْدًا وَسَلَامًا"],answer:2},
+      {question:"مَنْ بَنَى الكَعْبَةَ مَعَ إِبْرَاهِيم؟",options:["إِسْحَاق","يَعْقُوب","إِسْمَاعِيل"],answer:2},
+    ],
+    grammar:[
+      {word:"كَسَّرَ",   type:"verb", number:"singular"},
+      {word:"الأَصْنَامُ",type:"noun",number:"plural"},
+      {word:"يَعْبُدُونَ",type:"verb",number:"plural"},
+      {word:"الكَعْبَةُ", type:"noun",number:"singular"},
+      {word:"بَنَى",     type:"verb", number:"singular"},
+    ],
+    islamicLink:{theme:"التَّوْحِيد (Tawhid — Oneness of Allah)",note:"عَلَّمَنَا إِبْرَاهِيمُ أَنَّ اللهَ وَاحِدٌ لَا شَرِيكَ لَه. لَا تَعْبُدُ إِلَّا اللهَ وَلَا تُشْرِكْ بِهِ شَيْئًا.",quranRef:"سُورَةُ الأَنْبِيَاء: ٦٦-٦٨"},
+  },
+  {
+    id:"ikhlas-6", week:2, title:"سُورَةُ الإِخْلَاص", category:"quran", level:1, emoji:"☝️",
+    passage:"سُورَةُ الإِخْلَاصِ مِنْ أَعْظَمِ السُّوَر. تُعَادِلُ ثُلُثَ القُرْآنِ الكَرِيم. فِيهَا نُعَلِنُ أَنَّ اللهَ أَحَدٌ وَاحِد. اللهُ الصَّمَدُ الَّذِي لَا يَحْتَاجُ أَحَدًا. لَمْ يَلِدْ وَلَمْ يُولَد. لَيْسَ كَمِثْلِهِ شَيْء.",
+    vocabulary:[
+      {word:"تُعَادِلُ",  meaningAr:"تُسَاوِي وَتَبْلُغُ نَفْسَ القِيمَة",         meaningEn:"equals/is worth",  root:"ع-د-ل", dialectEgy:"بتساوي"},
+      {word:"ثُلُث",      meaningAr:"جُزْءٌ مِنْ ثَلَاثَةِ أَجْزَاء",              meaningEn:"one third",        root:"ث-ل-ث", dialectEgy:"تلت"},
+      {word:"نُعْلِنُ",   meaningAr:"نُخْبِرُ وَنُصَرِّحُ بِشَيْء",               meaningEn:"we declare",       root:"ع-ل-ن", dialectEgy:"بنعلن"},
+      {word:"الصَّمَدُ",  meaningAr:"اسْمٌ مِنْ أَسْمَاءِ اللهِ: الَّذِي لَا يَحْتَاجُ أَحَدًا وَيَحْتَاجُهُ الجَمِيع",meaningEn:"The Eternal",root:"ص-م-د", dialectEgy:"الصمد"},
+      {word:"كُفُوًا",    meaningAr:"مِثْلًا وَنَظِيرًا مُسَاوِيًا",               meaningEn:"equal/comparable",  root:"ك-ف-أ", dialectEgy:"مثيل"},
+    ],
+    comprehension:[
+      {question:"بِكَمْ تُعَادِلُ سُورَةُ الإِخْلَاص؟",options:["نِصْفَ القُرْآن","ثُلُثَ القُرْآن","رُبُعَ القُرْآن"],answer:1},
+      {question:"مَا مَعْنَى الصَّمَد؟",options:["الرَّحِيم","الَّذِي لَا يَحْتَاجُ أَحَدًا","الغَفُور"],answer:1},
+      {question:"هَلْ لِلَّهِ وَلَد؟",options:["نَعَم","لَمْ يَلِدْ وَلَمْ يُولَد","نَعَم فِي بَعْضِ الأَدْيَان"],answer:1},
+      {question:"هَلْ هُنَاكَ شَيْءٌ مِثْلَ الله؟",options:["نَعَم كَثِير","لَا لَيْسَ كَمِثْلِهِ شَيْء","رُبَّمَا"],answer:1},
+    ],
+    grammar:[
+      {word:"تُعَادِلُ",  type:"verb", number:"singular"},
+      {word:"السُّوَر",   type:"noun", number:"plural"},
+      {word:"نُعْلِنُ",   type:"verb", number:"plural"},
+      {word:"أَحَدٌ",     type:"noun", number:"singular"},
+      {word:"لَمْ يَلِدْ",type:"verb", number:"singular"},
+    ],
+    islamicLink:{theme:"التَّوْحِيد (Oneness of Allah)",note:"سُورَةُ الإِخْلَاصِ تُلَخِّصُ عَقِيدَةَ التَّوْحِيد. مَنْ قَرَأَهَا عَشْرَ مَرَّاتٍ بَنَى اللهُ لَهُ بَيْتًا فِي الجَنَّة.",quranRef:"سُورَةُ الإِخْلَاص: ١-٤"},
+  },
+  {
+    id:"akhlaq-7", week:2, title:"الأَمَانَةُ وَالصِّدْق", category:"islamic", level:1, emoji:"💎",
+    passage:"كَانَ النَّبِيُّ مُحَمَّدٌ ﷺ يُلَقَّبُ بِالأَمِين. لِأَنَّهُ كَانَ صَادِقًا فِي كَلَامِهِ. وَأَمِينًا فِي أَعْمَالِه. كَانَ النَّاسُ يُودِعُونَ عِنْدَهُ أَمْوَالَهُم. قَالَ ﷺ: «عَلَيْكُمْ بِالصِّدْقِ فَإِنَّ الصِّدْقَ يَهْدِي إِلَى الجَنَّة».",
+    vocabulary:[
+      {word:"يُلَقَّبُ",  meaningAr:"يُسَمَّى بِاسْمٍ خَاصٍّ مَعَ اسْمِه",        meaningEn:"is nicknamed",    root:"ل-ق-ب", dialectEgy:"بيتلقب"},
+      {word:"الأَمِين",   meaningAr:"الشَّخْصُ الَّذِي يُمْكِنُ الاعْتِمَادُ عَلَيْه",meaningEn:"the trustworthy", root:"أ-م-ن", dialectEgy:"الأمين"},
+      {word:"صَادِق",     meaningAr:"الَّذِي يَقُولُ الحَقَّ وَلَا يَكْذِب",       meaningEn:"truthful/honest", root:"ص-د-ق", dialectEgy:"صادق"},
+      {word:"يُودِعُونَ", meaningAr:"يَضَعُونَ أَشْيَاءَهُمْ عِنْدَ شَخْصٍ لِلحِفَاظِ عَلَيْهَا",meaningEn:"they deposit/entrust",root:"و-د-ع", dialectEgy:"بيودعوا"},
+      {word:"الصِّدْق",   meaningAr:"قَوْلُ الحَقِّ وَالابْتِعَادُ عَنِ الكَذِب",  meaningEn:"truthfulness",    root:"ص-د-ق", dialectEgy:"الصدق"},
+    ],
+    comprehension:[
+      {question:"مَا لَقَبُ النَّبِيِّ ﷺ قَبْلَ البَعْثَة؟",options:["الصَّادِق","الأَمِين","الكَرِيم"],answer:1},
+      {question:"لِمَاذَا كَانَ النَّاسُ يُودِعُونَ عِنْدَهُ أَمْوَالَهُم؟",options:["لِأَنَّهُ غَنِيّ","لِأَنَّهُ أَمِين","لِأَنَّهُ قَوِيّ"],answer:1},
+      {question:"إِلَى أَيْنَ يَهْدِي الصِّدْق؟",options:["الجَنَّة","النَّجَاح فَقَط","الدُّنْيَا"],answer:0},
+      {question:"مَا ضِدُّ الصِّدْق؟",options:["الكَرَم","الشَّجَاعَة","الكَذِب"],answer:2},
+    ],
+    grammar:[
+      {word:"يُلَقَّبُ",  type:"verb",  number:"singular"},
+      {word:"الأَمِينُ",  type:"noun",  number:"singular"},
+      {word:"يُودِعُونَ", type:"verb",  number:"plural"},
+      {word:"الأَمْوَال", type:"noun",  number:"plural"},
+      {word:"يَهْدِي",    type:"verb",  number:"singular"},
+    ],
+    islamicLink:{theme:"الأَمَانَة وَالصِّدْق (Honesty & Trustworthiness)",note:"الأَمَانَةُ وَالصِّدْقُ مِنْ أَعْظَمِ أَخْلَاقِ الإِسْلَام. قَالَ النَّبِيُّ ﷺ: «لَا إِيمَانَ لِمَنْ لَا أَمَانَةَ لَه».",quranRef:"سُورَةُ الأَحْزَاب: ٧٢"},
+  },
+  {
+    id:"zakah-8", week:2, title:"الزَّكَاةُ طَهَارَة", category:"islamic", level:2, emoji:"💚",
+    passage:"الزَّكَاةُ رُكْنٌ مِنْ أَرْكَانِ الإِسْلَام. يُعْطِي المُسْلِمُ جُزْءًا مِنْ مَالِهِ لِلفُقَرَاء. تُطَهِّرُ الزَّكَاةُ المَالَ وَتُنَمِّيه. قَالَ اللهُ: «وَفِي أَمْوَالِهِمْ حَقٌّ لِلسَّائِلِ وَالمَحْرُوم». الزَّكَاةُ تَجْعَلُ المُجْتَمَعَ أَقْوَى وَأَسْعَد.",
+    vocabulary:[
+      {word:"رُكْن",      meaningAr:"الجُزْءُ الأَسَاسِيُّ الَّذِي لَا يَقُومُ الشَّيْءُ بِدُونِه",meaningEn:"pillar/pillar",root:"ر-ك-ن", dialectEgy:"ركن"},
+      {word:"الفُقَرَاء", meaningAr:"جَمْعُ فَقِير: مَنْ لَيْسَ عِنْدَهُمْ مَال",  meaningEn:"the poor",       root:"ف-ق-ر", dialectEgy:"الفقرا"},
+      {word:"تُطَهِّرُ",  meaningAr:"تُنَقِّي وَتُزِيلُ الذُّنُوب",                meaningEn:"purifies",       root:"ط-ه-ر", dialectEgy:"بتطهر"},
+      {word:"تُنَمِّي",   meaningAr:"تُكَثِّرُ وَتَزِيدُ مِنَ الشَّيْء",           meaningEn:"grows/increases",root:"ن-م-و", dialectEgy:"بتنمي"},
+      {word:"المُجْتَمَع", meaningAr:"مَجْمُوعَةُ النَّاسِ الَّذِينَ يَعِيشُونَ مَعًا",meaningEn:"society/community",root:"ج-م-ع", dialectEgy:"المجتمع"},
+    ],
+    comprehension:[
+      {question:"مَا الزَّكَاة؟",options:["صَوْمُ رَمَضَان","رُكْنٌ مِنَ الإِسْلَامِ يَتَعَلَّقُ بِالمَال","الصَّلَاةُ الخَامِسَة"],answer:1},
+      {question:"لِمَنْ يُعْطِي المُسْلِمُ الزَّكَاة؟",options:["لِلْأَغْنِيَاء","لِلفُقَرَاء","لِلتُّجَّار"],answer:1},
+      {question:"مَاذَا تَفْعَلُ الزَّكَاةُ بِالمَال؟",options:["تُنْقِصُه","تُطَهِّرُهُ وَتُنَمِّيه","تُغَيِّرُه"],answer:1},
+      {question:"مَاذَا تَصْنَعُ الزَّكَاةُ لِلمُجْتَمَع؟",options:["تُضْعِفُه","تَجْعَلُهُ أَقْوَى وَأَسْعَد","لَا شَيْء"],answer:1},
+    ],
+    grammar:[
+      {word:"يُعْطِي",    type:"verb", number:"singular"},
+      {word:"الفُقَرَاءُ", type:"noun", number:"plural"},
+      {word:"تُطَهِّرُ",  type:"verb", number:"singular"},
+      {word:"الأَمْوَال", type:"noun", number:"plural"},
+      {word:"تَجْعَلُ",   type:"verb", number:"singular"},
+    ],
+    islamicLink:{theme:"الزَّكَاة (Zakah — 3rd Pillar of Islam)",note:"الزَّكَاةُ تَعْنِي أَنَّ المُسْلِمَ لَا يَنْسَى إِخْوَانَهُ الفُقَرَاء. هِيَ رَابِطٌ بَيْنَ الغَنِيِّ وَالفَقِير فِي مُجْتَمَعِ الإِسْلَام.",quranRef:"سُورَةُ الذَّارِيَات: ١٩"},
+  },
+
+  {
+    id:"yusuf-9", week:3, title:"سَيِّدُنَا يُوسُفُ عليه السلام", category:"islamic", level:2, emoji:"⭐",
+    passage:"يُوسُفُ عليه السلام كَانَ صَبُورًا وَأَمِينًا. رَمَاهُ إِخْوَتُهُ فِي البِئْر. ثُمَّ بِيعَ فِي مِصْر. سُجِنَ ظُلْمًا لِسَنَوَاتٍ طَوِيلَة. لٰكِنَّهُ لَمْ يَيْأَسْ مِنْ رَحْمَةِ الله. فَجَعَلَهُ اللهُ وَزِيرًا عَزِيزًا فِي مِصْر.",
+    vocabulary:[
+      {word:"صَبُور",     meaningAr:"الَّذِي يَتَحَمَّلُ الصُّعُوبَاتِ بِهُدُوء",  meaningEn:"patient/persevering",root:"ص-ب-ر", dialectEgy:"صبور"},
+      {word:"البِئْر",    meaningAr:"حُفْرَةٌ عَمِيقَةٌ فِي الأَرْضِ يَخْرُجُ مِنْهَا المَاء",meaningEn:"well",root:"ب-أ-ر", dialectEgy:"البير"},
+      {word:"سُجِنَ",     meaningAr:"وُضِعَ فِي السِّجْنِ بِغَيْرِ حَقّ",          meaningEn:"was imprisoned",   root:"س-ج-ن", dialectEgy:"اتحبس"},
+      {word:"يَيْأَسْ",   meaningAr:"يَفْقِدُ الأَمَلَ وَيَتَوَقَّفُ عَنِ المُحَاوَلَة",meaningEn:"despairs",    root:"ي-أ-س", dialectEgy:"بييأس"},
+      {word:"وَزِيرًا",   meaningAr:"مَسْؤُولٌ كَبِيرٌ فِي الحُكُومَة",           meaningEn:"minister",         root:"و-ز-ر", dialectEgy:"وزير"},
+    ],
+    comprehension:[
+      {question:"مَاذَا فَعَلَ إِخْوَةُ يُوسُف بِه؟",options:["أَحَبُّوه","رَمَوْهُ فِي البِئْر","تَرَكُوهُ وَحْدَه"],answer:1},
+      {question:"أَيْنَ بِيعَ يُوسُف؟",options:["فِي الشَّام","فِي العِرَاق","فِي مِصْر"],answer:2},
+      {question:"لِمَاذَا سُجِنَ يُوسُف؟",options:["بِسَبَبِ جَرِيمَة","ظُلْمًا بِغَيْرِ حَقّ","لِأَنَّهُ هَرَب"],answer:1},
+      {question:"مَا الدَّرْسُ مِنْ قِصَّةِ يُوسُف؟",options:["اليَأْسُ مُفِيد","الصَّبْرُ يَأْتِي بِالفَرَج","لَا دَرْس"],answer:1},
+    ],
+    grammar:[
+      {word:"رَمَى",      type:"verb",  number:"singular"},
+      {word:"إِخْوَة",    type:"noun",  number:"plural"},
+      {word:"سُجِنَ",     type:"verb",  number:"singular"},
+      {word:"سَنَوَات",   type:"noun",  number:"plural"},
+      {word:"جَعَلَ",     type:"verb",  number:"singular"},
+    ],
+    islamicLink:{theme:"الصَّبْرُ وَالفَرَج (Patience brings relief)",note:"قِصَّةُ يُوسُفَ تُعَلِّمُنَا أَنَّ مَعَ العُسْرِ يُسْرًا. لَا تَيْأَسْ مِنْ رَحْمَةِ اللهِ فَرَبَّمَا يَكُونُ بَعْدَ الضِّيقِ فَرَجٌ قَرِيب.",quranRef:"سُورَةُ يُوسُف: ٨٧"},
+  },
+  {
+    id:"ramadan-10", week:3, title:"شَهْرُ رَمَضَان", category:"islamic", level:1, emoji:"🌙",
+    passage:"رَمَضَانُ شَهْرٌ مُبَارَك. يَصُومُ المُسْلِمُونَ فِيهِ مِنَ الفَجْرِ إِلَى المَغْرِب. يَقْرَأُونَ القُرْآنَ كَثِيرًا. وَيُكْثِرُونَ مِنَ الدُّعَاءِ وَالذِّكْر. فِي رَمَضَانَ لَيْلَةُ القَدْرِ الَّتِي هِيَ خَيْرٌ مِنْ أَلْفِ شَهْر.",
+    vocabulary:[
+      {word:"مُبَارَك",   meaningAr:"مَمْلُوءٌ بِالخَيْرِ وَالبَرَكَة",          meaningEn:"blessed",          root:"ب-ر-ك", dialectEgy:"مبارك"},
+      {word:"يَصُومُونَ", meaningAr:"يُمْسِكُونَ عَنِ الطَّعَامِ وَالشُّرْبِ لِلَّه",meaningEn:"they fast",    root:"ص-و-م", dialectEgy:"بيصوموا"},
+      {word:"يُكْثِرُونَ",meaningAr:"يَزِيدُونَ مِنْ فِعْلِ شَيْء",              meaningEn:"they increase",    root:"ك-ث-ر", dialectEgy:"بيكتروا"},
+      {word:"الذِّكْر",   meaningAr:"تَسْبِيحُ اللهِ وَحَمْدُهُ وَذِكْرُ اسْمِه",meaningEn:"remembrance of Allah",root:"ذ-ك-ر", dialectEgy:"الذكر"},
+      {word:"لَيْلَةُ القَدْر",meaningAr:"أَعْظَمُ لَيْلَةٍ فِي السَّنَة، فِي آخِرِ رَمَضَان",meaningEn:"Night of Decree",root:"ق-د-ر", dialectEgy:"ليلة القدر"},
+    ],
+    comprehension:[
+      {question:"مَتَى يَصُومُ المُسْلِمُ فِي رَمَضَان؟",options:["مِنَ الظُّهْرِ إِلَى العِشَاء","مِنَ الفَجْرِ إِلَى المَغْرِب","مِنَ الصُّبْحِ إِلَى الظُّهْر"],answer:1},
+      {question:"مَا لَيْلَةُ القَدْر؟",options:["لَيْلَةٌ عَادِيَّة","أَعْظَمُ لَيْلَةٍ خَيْرٌ مِنْ أَلْفِ شَهْر","لَيْلَةُ عِيدٍ فَقَط"],answer:1},
+      {question:"مَاذَا يَفْعَلُ المُسْلِمُونَ فِي رَمَضَان؟",options:["يَنَامُونَ كَثِيرًا فَقَط","يَقْرَأُونَ القُرْآنَ وَيَذْكُرُونَ الله","لَا شَيْء"],answer:1},
+      {question:"مَا صِيَامُ رَمَضَان؟",options:["رُكْنٌ مِنَ الإِسْلَام","سُنَّةٌ فَقَط","اخْتِيَارِيّ"],answer:0},
+    ],
+    grammar:[
+      {word:"يَصُومُونَ",  type:"verb", number:"plural"},
+      {word:"شَهْرٌ",      type:"noun", number:"singular"},
+      {word:"يَقْرَأُونَ", type:"verb", number:"plural"},
+      {word:"لَيَالِي",    type:"noun", number:"plural"},
+      {word:"يُكْثِرُونَ", type:"verb", number:"plural"},
+    ],
+    islamicLink:{theme:"الصِّيَام (Fasting — 4th Pillar of Islam)",note:"قَالَ اللهُ تَعَالَى: «الصَّوْمُ لِي وَأَنَا أَجْزِي بِه». رَمَضَانُ مَدْرَسَةٌ لِلصَّبْرِ وَالتَّقْوَى وَالرَّحْمَة.",quranRef:"سُورَةُ البَقَرَة: ١٨٥"},
+  },
+  {
+    id:"dua-11", week:3, title:"قُوَّةُ الدُّعَاء", category:"islamic", level:1, emoji:"🤲",
+    passage:"الدُّعَاءُ سِلَاحُ المُؤْمِن. نَدْعُو اللهَ فِي كُلِّ وَقْت. نَدْعُوهُ فِي السَّرَّاءِ وَالضَّرَّاء. قَالَ اللهُ: «ادْعُونِي أَسْتَجِبْ لَكُم». الدُّعَاءُ يُقَرِّبُنَا مِنَ الله. وَمِنْ أَفْضَلِ أَوْقَاتِهِ: آخِرُ اللَّيْلِ وَبَعْدَ الصَّلَوَات.",
+    vocabulary:[
+      {word:"سِلَاح",     meaningAr:"أَدَاةٌ لِلدِّفَاعِ عَنِ النَّفْس؛ الدُّعَاءُ سِلَاحٌ رُوحِيّ",meaningEn:"weapon",root:"س-ل-ح", dialectEgy:"سلاح"},
+      {word:"السَّرَّاء",  meaningAr:"وَقْتُ الفَرَحِ وَالرَّخَاء",                meaningEn:"times of ease",    root:"س-ر-ر", dialectEgy:"وقت الفرح"},
+      {word:"الضَّرَّاء",  meaningAr:"وَقْتُ الشِّدَّةِ وَالضِّيق",               meaningEn:"times of hardship", root:"ض-ر-ر", dialectEgy:"وقت الضيق"},
+      {word:"أَسْتَجِب",  meaningAr:"أَقْبَلُ وَأُجِيبُ مَا طُلِبَ مِنِّي",       meaningEn:"I will respond",   root:"ج-و-ب", dialectEgy:"بستجيب"},
+      {word:"يُقَرِّبُنَا",meaningAr:"يَجْعَلُنَا أَقْرَبَ وَأَكْثَرَ صِلَةً بِشَيْء",meaningEn:"brings us closer",root:"ق-ر-ب", dialectEgy:"بيقربنا"},
+    ],
+    comprehension:[
+      {question:"مَا الدُّعَاء؟",options:["سِلَاحُ المُؤْمِن","لُعْبَةٌ لِلْأَطْفَال","سُورَةٌ قُرْآنِيَّة"],answer:0},
+      {question:"مَتَى نَدْعُو الله؟",options:["فِي السَّرَّاءِ فَقَط","فِي الضَّرَّاءِ فَقَط","فِي السَّرَّاءِ وَالضَّرَّاء"],answer:2},
+      {question:"مَا وَعْدُ اللهِ لِمَنْ يَدْعُوه؟",options:["لَا وَعْد","أَسْتَجِبْ لَكُم","رُبَّمَا أَسْتَجِيب"],answer:1},
+      {question:"مَتَى مِنْ أَفْضَلِ أَوْقَاتِ الدُّعَاء؟",options:["وَقْتَ الأَكْل","آخِرُ اللَّيْل","وَقْتَ اللَّعِب"],answer:1},
+    ],
+    grammar:[
+      {word:"نَدْعُو",     type:"verb",  number:"plural"},
+      {word:"المُؤْمِنُ",  type:"noun",  number:"singular"},
+      {word:"يُقَرِّبُ",  type:"verb",  number:"singular"},
+      {word:"الصَّلَوَات", type:"noun",  number:"plural"},
+      {word:"أَوْقَات",   type:"noun",  number:"plural"},
+    ],
+    islamicLink:{theme:"الدُّعَاء (Supplication)",note:"الدُّعَاءُ هُوَ العِبَادَة. قَالَ النَّبِيُّ ﷺ: «الدُّعَاءُ هُوَ العِبَادَة». حِينَ تَدْعُو اللهَ فَأَنْتَ تَعْبُدُهُ وَتَثِقُ بِه.",quranRef:"سُورَةُ غَافِر: ٦٠"},
+  },
+  {
+    id:"musa-12", week:3, title:"سَيِّدُنَا مُوسَى عليه السلام", category:"islamic", level:2, emoji:"🌊",
+    passage:"مُوسَى عليه السلام كَلَّمَهُ اللهُ مُبَاشَرَة. أَرْسَلَهُ اللهُ إِلَى فِرْعَوْنَ الظَّالِم. أَيَّدَهُ اللهُ بِمُعْجِزَاتٍ عَظِيمَة. فَلَقِيَ مُوسَى البَحْرَ فَضَرَبَهُ بِعَصَاهُ فَانْفَلَقَ. أَنْقَذَ اللهُ بَنِي إِسْرَائِيلَ مِنَ الظُّلْم.",
+    vocabulary:[
+      {word:"كَلَّمَهُ",   meaningAr:"تَحَدَّثَ إِلَيْهِ مُبَاشَرَةً بِكَلَام",    meaningEn:"spoke to him",     root:"ك-ل-م", dialectEgy:"كلمه"},
+      {word:"الظَّالِم",   meaningAr:"الَّذِي يَظْلِمُ وَيَأْخُذُ حُقُوقَ الآخَرِين",meaningEn:"the oppressor",  root:"ظ-ل-م", dialectEgy:"الظالم"},
+      {word:"مُعْجِزَات",  meaningAr:"جَمْعُ مُعْجِزَة: أَحْدَاثٌ خَارِقَةٌ لِلطَّبِيعَة",meaningEn:"miracles",root:"ع-ج-ز", dialectEgy:"معجزات"},
+      {word:"انْفَلَقَ",   meaningAr:"انْشَقَّ وَانْقَسَمَ إِلَى قِسْمَيْن",         meaningEn:"split/parted",     root:"ف-ل-ق", dialectEgy:"اتشق"},
+      {word:"أَنْقَذَ",    meaningAr:"خَلَّصَ وَحَرَّرَ مِنَ الخَطَر",              meaningEn:"saved/rescued",    root:"ن-ق-ذ", dialectEgy:"أنقذ"},
+    ],
+    comprehension:[
+      {question:"إِلَى مَنْ أَرْسَلَ اللهُ مُوسَى؟",options:["إِلَى قُرَيْش","إِلَى فِرْعَوْن","إِلَى بَابِل"],answer:1},
+      {question:"كَيْفَ انْفَلَقَ البَحْر؟",options:["بِالدُّعَاءِ فَقَط","بِضَرْبَةِ عَصَا مُوسَى","بِنَفْسِه"],answer:1},
+      {question:"مَنْ أَنْقَذَ بَنِي إِسْرَائِيل؟",options:["مُوسَى وَحْدَه","بِقُوَّتِهِمْ","اللهُ بِأَمْرِه"],answer:2},
+      {question:"مَا مَعْنَى مُعْجِزَة؟",options:["حَادِثَةٌ عَادِيَّة","حَدَثٌ خَارِقٌ لِلطَّبِيعَة بِإِذْنِ الله","قِصَّةٌ قَدِيمَة"],answer:1},
+    ],
+    grammar:[
+      {word:"أَرْسَلَ",    type:"verb",  number:"singular"},
+      {word:"مُعْجِزَاتٌ", type:"noun",  number:"plural"},
+      {word:"ضَرَبَ",      type:"verb",  number:"singular"},
+      {word:"البَحْرُ",    type:"noun",  number:"singular"},
+      {word:"أَنْقَذَ",    type:"verb",  number:"singular"},
+    ],
+    islamicLink:{theme:"التَّوَكُّل عَلَى الله (Trusting Allah)",note:"حِينَ وَقَفَ مُوسَى أَمَامَ البَحْرِ قَالَ: «إِنَّ مَعِيَ رَبِّي سَيَهْدِين». الثِّقَةُ بِاللهِ تَفْتَحُ البُحُور.",quranRef:"سُورَةُ الشُّعَرَاء: ٦٢"},
+  },
+
+  {
+    id:"muhammad-13", week:4, title:"حُبُّ النَّبِيِّ ﷺ", category:"islamic", level:2, emoji:"🌙",
+    passage:"مُحَمَّدٌ ﷺ خَاتَمُ الأَنْبِيَاء وَالمُرْسَلِين. وُلِدَ فِي مَكَّةَ المُكَرَّمَة. كَانَ رَحِيمًا بِالفُقَرَاءِ وَالمَسَاكِين. وَكَانَ رَفِيقًا بِالحَيَوَانَات. قَالَ ﷺ: «إِنَّمَا بُعِثْتُ لِأُتَمِّمَ مَكَارِمَ الأَخْلَاق».",
+    vocabulary:[
+      {word:"خَاتَمُ",    meaningAr:"الآخِرُ وَالأَخِيرُ الَّذِي يَخْتِمُ السِّلْسِلَة",meaningEn:"seal/last",  root:"خ-ت-م", dialectEgy:"آخر"},
+      {word:"المُرْسَلِين",meaningAr:"جَمْعُ رَسُول: مَنْ أَرْسَلَهُمُ اللهُ بِوَحْي",meaningEn:"the messengers",root:"ر-س-ل", dialectEgy:"المرسلين"},
+      {word:"المَسَاكِين",meaningAr:"جَمْعُ مِسْكِين: مَنْ يَحْتَاجُ مُسَاعَدَة",   meaningEn:"the needy",     root:"س-ك-ن", dialectEgy:"المساكين"},
+      {word:"رَفِيق",     meaningAr:"لَطِيفٌ وَمُتَأَنٍّ لَا يَسْتَعْمِلُ القَسَاوَة",meaningEn:"gentle/kind",  root:"ر-ف-ق", dialectEgy:"رفيق"},
+      {word:"مَكَارِم",   meaningAr:"جَمْعُ مَكْرُمَة: صِفَاتٌ نَبِيلَةٌ وَحَسَنَة",meaningEn:"noble qualities",root:"ك-ر-م", dialectEgy:"مكارم"},
+    ],
+    comprehension:[
+      {question:"مَا مَعْنَى «خَاتَمُ الأَنْبِيَاء»؟",options:["أَوَّلُ نَبِيّ","آخِرُ نَبِيّ","أَكْبَرُ نَبِيّ"],answer:1},
+      {question:"أَيْنَ وُلِدَ النَّبِيُّ ﷺ؟",options:["المَدِينَة","مَكَّة","الطَّائِف"],answer:1},
+      {question:"لِمَ بُعِثَ النَّبِيُّ ﷺ؟",options:["لِيُحَارِبَ فَقَط","لِيُتَمِّمَ مَكَارِمَ الأَخْلَاق","لِيَجْمَعَ المَال"],answer:1},
+      {question:"كَيْفَ كَانَ النَّبِيُّ ﷺ مَعَ الفُقَرَاء؟",options:["يَتَجَنَّبُهُم","رَحِيمٌ بِهِم","لَا يَهْتَمُّ بِهِم"],answer:1},
+    ],
+    grammar:[
+      {word:"وُلِدَ",      type:"verb",  number:"singular"},
+      {word:"الأَنْبِيَاءُ",type:"noun", number:"plural"},
+      {word:"كَانَ",       type:"verb",  number:"singular"},
+      {word:"المَسَاكِينُ",type:"noun",  number:"plural"},
+      {word:"بُعِثَ",      type:"verb",  number:"singular"},
+    ],
+    islamicLink:{theme:"الأَخْلَاق (Islamic Character)",note:"النَّبِيُّ ﷺ هُوَ القُدْوَة الحَسَنَة. قَالَ اللهُ: «وَإِنَّكَ لَعَلَى خُلُقٍ عَظِيم». اِتَّبِعْ أَخْلَاقَهُ فِي كُلِّ يَوْم.",quranRef:"سُورَةُ الأَحْزَاب: ٢١"},
+  },
+  {
+    id:"hajj-14", week:4, title:"الحَجُّ إِلَى بَيْتِ الله", category:"islamic", level:2, emoji:"🕋",
+    passage:"الحَجُّ رُكْنٌ مِنْ أَرْكَانِ الإِسْلَام. يَحُجُّ المُسْلِمُونَ إِلَى مَكَّةَ مَرَّةً فِي العُمُر. يَطُوفُونَ حَوْلَ الكَعْبَةِ المُشَرَّفَة. يَقِفُونَ عَلَى جَبَلِ عَرَفَة. يَجْتَمِعُ المُسْلِمُونَ مِنْ كُلِّ أَنْحَاءِ العَالَمِ فِي مَكَان وَاحِد.",
+    vocabulary:[
+      {word:"يَحُجُّ",    meaningAr:"يَقْصِدُ مَكَّةَ لِأَدَاءِ مَنَاسِكِ الحَجّ",  meaningEn:"performs Hajj",    root:"ح-ج-ج", dialectEgy:"بيحج"},
+      {word:"يَطُوفُونَ", meaningAr:"يَدُورُونَ حَوْلَ الكَعْبَةِ سَبْعَ مَرَّات",  meaningEn:"they circumambulate",root:"ط-و-ف", dialectEgy:"بيطوفوا"},
+      {word:"يَقِفُونَ",  meaningAr:"يَثْبُتُونَ فِي مَكَانٍ مُعَيَّن",             meaningEn:"they stand/halt",  root:"و-ق-ف", dialectEgy:"بيوقفوا"},
+      {word:"عَرَفَة",    meaningAr:"جَبَلٌ قَرِيبٌ مِنْ مَكَّة، رُكْنُ الحَجِّ الأَعْظَم",meaningEn:"Mount Arafat",root:"ع-ر-ف", dialectEgy:"عرفة"},
+      {word:"أَنْحَاء",   meaningAr:"جَمْعُ نَاحِيَة: جِهَاتٌ وَأَمَاكِنُ مُتَعَدِّدَة",meaningEn:"parts/regions",root:"ن-ح-و", dialectEgy:"أنحاء"},
+    ],
+    comprehension:[
+      {question:"كَمْ مَرَّةً يَجِبُ الحَجُّ فِي العُمُر؟",options:["كُلَّ سَنَة","مَرَّةً وَاحِدَة لِمَنِ اسْتَطَاع","خَمْسَ مَرَّات"],answer:1},
+      {question:"مَاذَا يَفْعَلُ الحُجَّاجُ حَوْلَ الكَعْبَة؟",options:["يُصَلُّونَ","يَطُوفُونَ","يَجْلِسُونَ"],answer:1},
+      {question:"أَيْنَ يَقِفُ الحُجَّاجُ؟",options:["فِي المَسْجِد النَّبَوِيّ","عَلَى جَبَلِ عَرَفَة","فِي المَدِينَة"],answer:1},
+      {question:"مِنْ أَيْنَ يَأْتِي الحُجَّاج؟",options:["مِنَ العَرَبِ فَقَط","مِنْ كُلِّ أَنْحَاءِ العَالَم","مِنَ الشَّرْقِ الأَوْسَط فَقَط"],answer:1},
+    ],
+    grammar:[
+      {word:"يَحُجُّ",     type:"verb",  number:"singular"},
+      {word:"المُسْلِمُونَ",type:"noun",  number:"plural"},
+      {word:"يَطُوفُونَ",  type:"verb",  number:"plural"},
+      {word:"جَبَل",       type:"noun",  number:"singular"},
+      {word:"يَجْتَمِعُ",  type:"verb",  number:"singular"},
+    ],
+    islamicLink:{theme:"الحَجّ (Hajj — 5th Pillar of Islam)",note:"الحَجُّ يُذَكِّرُنَا بِيَوْمِ القِيَامَة: كُلُّ النَّاسِ مُتَسَاوُونَ فِي ثِيَابٍ بَيْضَاء. لَا فَرْقَ بَيْنَ غَنِيٍّ وَفَقِير.",quranRef:"سُورَةُ آلِ عِمْرَان: ٩٧"},
+  },
+  {
+    id:"asma-15", week:4, title:"أَسْمَاءُ اللهِ الحُسْنَى", category:"quran", level:1, emoji:"✨",
+    passage:"لِلَّهِ تِسْعَةٌ وَتِسْعُونَ اسْمًا. كُلُّ اسْمٍ يَصِفُ صِفَةً عَظِيمَةً لله. فَهُوَ الرَّحْمٰنُ الرَّحِيمُ الكَرِيمُ العَلِيم. وَهُوَ السَّمِيعُ البَصِيرُ الحَيُّ القَيُّوم. قَالَ النَّبِيُّ ﷺ: «مَنْ أَحْصَاهَا دَخَلَ الجَنَّة».",
+    vocabulary:[
+      {word:"تِسْعَةٌ وَتِسْعُونَ",meaningAr:"العَدَدُ ٩٩",                      meaningEn:"ninety-nine",      root:"ت-س-ع", dialectEgy:"تسعة وتسعين"},
+      {word:"يَصِفُ",     meaningAr:"يُبَيِّنُ صِفَاتِ وَخَصَائِصَ شَيْء",       meaningEn:"describes",        root:"و-ص-ف", dialectEgy:"بيوصف"},
+      {word:"الكَرِيم",   meaningAr:"مِنْ أَسْمَاءِ اللهِ: الجَوَّادُ الَّذِي يُعْطِي بِغَيْرِ حِسَاب",meaningEn:"The Most Generous",root:"ك-ر-م", dialectEgy:"الكريم"},
+      {word:"القَيُّوم",  meaningAr:"الَّذِي يَقُومُ بِنَفْسِهِ وَيُقِيمُ غَيْرَه", meaningEn:"The Self-Sustaining",root:"ق-و-م", dialectEgy:"القيوم"},
+      {word:"أَحْصَاهَا", meaningAr:"عَدَّهَا وَحَفِظَهَا وَعَمِلَ بِمَعَانِيهَا",meaningEn:"memorized/counted them",root:"ح-ص-و", dialectEgy:"حفظها"},
+    ],
+    comprehension:[
+      {question:"كَمْ اسْمًا لِلَّه؟",options:["٩٩ اسْمًا","١٠٠ اسْم","٧٧ اسْمًا"],answer:0},
+      {question:"مَاذَا يَصِفُ كُلُّ اسْمٍ مِنْ أَسْمَاءِ اللهِ؟",options:["قِصَّةً","صِفَةً عَظِيمَةً لله","مَلَكًا"],answer:1},
+      {question:"مَا مَعْنَى القَيُّوم؟",options:["الغَفُور","الَّذِي يَقُومُ بِنَفْسِهِ وَيُقِيمُ غَيْرَه","الكَرِيم"],answer:1},
+      {question:"مَا وَعْدُ النَّبِيِّ ﷺ لِمَنْ أَحْصَى أَسْمَاءَ الله؟",options:["عُمُرٌ طَوِيل","مَالٌ كَثِير","الجَنَّة"],answer:2},
+    ],
+    grammar:[
+      {word:"يَصِفُ",     type:"verb",  number:"singular"},
+      {word:"الأَسْمَاء", type:"noun",  number:"plural"},
+      {word:"أَحْصَى",    type:"verb",  number:"singular"},
+      {word:"الصِّفَات",  type:"noun",  number:"plural"},
+      {word:"دَخَلَ",     type:"verb",  number:"singular"},
+    ],
+    islamicLink:{theme:"أَسْمَاءُ اللهِ الحُسْنَى (Beautiful Names of Allah)",note:"تَعَلُّمُ أَسْمَاءِ اللهِ يُقَوِّي إِيمَانَنَا. حِينَ تَعْرِفُ أَنَّ اللهَ الرَّزَّاق، تَثِقُ بِرِزْقِك. وَحِينَ تَعْرِفُ أَنَّهُ الغَفُور، تَتُوبُ بِلَا خَوْف.",quranRef:"سُورَةُ الأَعْرَاف: ١٨٠"},
+  },
+  {
+    id:"sabr-16", week:4, title:"الصَّبْرُ مِفْتَاحُ الفَرَج", category:"islamic", level:2, emoji:"💪",
+    passage:"الصَّبْرُ مِنْ أَعْظَمِ القِيَم فِي الإِسْلَام. أَمَرَنَا اللهُ بِالصَّبْرِ فِي القُرْآنِ أَكْثَرَ مِنْ تِسْعِينَ مَرَّة. الصَّبْرُ ثَلَاثَةُ أَنْوَاع: الصَّبْرُ عَلَى طَاعَةِ الله، وَالصَّبْرُ عَنْ مَعَاصِيه، وَالصَّبْرُ عَلَى البَلَاء. قَالَ اللهُ: «إِنَّ اللهَ مَعَ الصَّابِرِين».",
+    vocabulary:[
+      {word:"القِيَم",    meaningAr:"جَمْعُ قِيمَة: المَبَادِئُ وَالأَشْيَاءُ الَّتِي نَعْتَزُّ بِهَا",meaningEn:"values",root:"ق-و-م", dialectEgy:"القيم"},
+      {word:"أَنْوَاع",   meaningAr:"جَمْعُ نَوْع: أَقْسَامٌ مُخْتَلِفَةٌ مِنَ الشَّيْء",meaningEn:"types",root:"ن-و-ع", dialectEgy:"أنواع"},
+      {word:"طَاعَة",     meaningAr:"الاسْتِجَابَةُ وَالاتِّبَاعُ لِأَوَامِرِ اللهِ",meaningEn:"obedience",root:"ط-و-ع", dialectEgy:"طاعة"},
+      {word:"مَعَاصِي",   meaningAr:"جَمْعُ مَعْصِيَة: الأُمُورُ الَّتِي نَهَى اللهُ عَنْهَا",meaningEn:"sins/disobedience",root:"ع-ص-و", dialectEgy:"معاصي"},
+      {word:"الصَّابِرِين",meaningAr:"جَمْعُ صَابِر: الَّذِينَ يَتَحَمَّلُونَ الشَّدَائِد",meaningEn:"the patient ones",root:"ص-ب-ر", dialectEgy:"الصابرين"},
+    ],
+    comprehension:[
+      {question:"كَمْ مَرَّةً ذَكَرَ اللهُ الصَّبْرَ فِي القُرْآن؟",options:["عَشْر مَرَّات","خَمْسِين مَرَّة","أَكْثَرَ مِنْ تِسْعِين مَرَّة"],answer:2},
+      {question:"مَا أَنْوَاعُ الصَّبْر؟",options:["نَوْعٌ وَاحِد فَقَط","نَوْعَان","ثَلَاثَةُ أَنْوَاع"],answer:2},
+      {question:"مَا الصَّبْرُ عَلَى طَاعَةِ الله؟",options:["الصَّبْرُ فِي المِحَن","الاسْتِمْرَارُ فِي أَوَامِرِ الله","الصَّبْرُ عَنِ الذُّنُوب"],answer:1},
+      {question:"مَنِ اللهُ مَعَهُمْ؟",options:["الأَذْكِيَاء","الأَغْنِيَاء","الصَّابِرِين"],answer:2},
+    ],
+    grammar:[
+      {word:"أَمَرَ",     type:"verb",  number:"singular"},
+      {word:"الأَنْوَاع", type:"noun",  number:"plural"},
+      {word:"الصَّابِرُونَ",type:"noun",number:"plural"},
+      {word:"يَتَحَمَّل", type:"verb",  number:"singular"},
+      {word:"القِيَمُ",   type:"noun",  number:"plural"},
+    ],
+    islamicLink:{theme:"الصَّبْر (Patience)",note:"«وَاسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاة». الصَّبْرُ لَيْسَ ضَعْفًا بَلْ هُوَ قُوَّةٌ عَظِيمَة. الصَّابِرُ يَفُوزُ فِي الدُّنْيَا وَالآخِرَة.",quranRef:"سُورَةُ البَقَرَة: ١٥٣"},
+  },
+
+  {
+    id:"quranwords-17", week:5, title:"كَلِمَاتُ الذِّكْر", category:"quran", level:1, emoji:"📿",
+    passage:"الذِّكْرُ غِذَاءُ الرُّوح. نُسَبِّحُ اللهَ فَنَقُولُ: سُبْحَانَ الله. وَنَحْمَدُهُ فَنَقُولُ: الحَمْدُ لِلَّه. وَنُكَبِّرُهُ فَنَقُولُ: اللهُ أَكْبَر. وَنُهَلِّلُ فَنَقُولُ: لَا إِلٰهَ إِلَّا الله. هَذِهِ الكَلِمَاتُ الأَرْبَعُ خَيْرٌ مِنَ الدُّنْيَا وَمَا فِيهَا.",
+    vocabulary:[
+      {word:"غِذَاء",     meaningAr:"الطَّعَامُ الَّذِي يُقَوِّي وَيُنَمِّي؛ الذِّكْرُ يُقَوِّي الرُّوح",meaningEn:"nourishment",root:"غ-ذ-و", dialectEgy:"غذاء"},
+      {word:"نُسَبِّحُ",  meaningAr:"نَقُولُ سُبْحَانَ اللهِ وَنُنَزِّهُه",       meaningEn:"we glorify",       root:"س-ب-ح", dialectEgy:"بنسبح"},
+      {word:"نُكَبِّرُ",  meaningAr:"نَقُولُ اللهُ أَكْبَر وَنُعَظِّمُه",         meaningEn:"we magnify",       root:"ك-ب-ر", dialectEgy:"بنكبر"},
+      {word:"نُهَلِّلُ",  meaningAr:"نَقُولُ لَا إِلٰهَ إِلَّا الله",            meaningEn:"we say 'La ilaha illallah'",root:"ه-ل-ل", dialectEgy:"بنهلل"},
+      {word:"خَيْرٌ مِن", meaningAr:"أَفْضَلُ وَأَحْسَنُ قَدْرًا مِنَ الشَّيْء", meaningEn:"better than",      root:"خ-ي-ر", dialectEgy:"أحسن من"},
+    ],
+    comprehension:[
+      {question:"مَا غِذَاءُ الرُّوح؟",options:["الأَكْل","الذِّكْر","النَّوْم"],answer:1},
+      {question:"مَا مَعْنَى نُسَبِّح؟",options:["نُصَلِّي","نَقُولُ سُبْحَانَ الله","نَقْرَأ"],answer:1},
+      {question:"مَا الكَلِمَاتُ الأَرْبَع؟",options:["الفَاتِحَة","سبحان الله والحمد والأكبر ولا إله إلا الله","آيَةُ الكُرْسِي"],answer:1},
+      {question:"هَذِهِ الكَلِمَاتُ الأَرْبَعُ خَيْرٌ مِن؟",options:["الذَّهَب فَقَط","الصَّدَقَة","الدُّنْيَا وَمَا فِيهَا"],answer:2},
+    ],
+    grammar:[
+      {word:"نُسَبِّحُ",  type:"verb", number:"plural"},
+      {word:"الكَلِمَاتُ", type:"noun", number:"plural"},
+      {word:"نُكَبِّرُ",  type:"verb", number:"plural"},
+      {word:"الدُّنْيَا",  type:"noun", number:"singular"},
+      {word:"نُهَلِّلُ",  type:"verb", number:"plural"},
+    ],
+    islamicLink:{theme:"التَّسْبِيح وَالذِّكْر (Dhikr)",note:"قَالَ النَّبِيُّ ﷺ: «أَفْضَلُ الكَلَامِ بَعْدَ القُرْآنِ أَرْبَعٌ: سُبْحَانَ الله، وَالحَمْدُ لِلَّه، وَلَا إِلٰهَ إِلَّا الله، وَاللهُ أَكْبَر».",quranRef:"صَحِيحُ مُسْلِم"},
+  },
+  {
+    id:"masjid-18", week:5, title:"بَيْتُ اللهِ المَسْجِد", category:"islamic", level:1, emoji:"🕌",
+    passage:"المَسْجِدُ بَيْتُ اللهِ عَلَى الأَرْض. نَذْهَبُ إِلَيْهِ لِلصَّلَاةِ وَتَعَلُّمِ الدِّين. يَجِبُ أَنْ نَدْخُلَ المَسْجِدَ بِأَدَب. نُصَلِّي تَحِيَّةَ المَسْجِدِ رَكْعَتَيْن. المَسْجِدُ مَكَانٌ لِلعِبَادَةِ وَالتَّعَلُّمِ وَالتَّآخِي بَيْنَ المُسْلِمِين.",
+    vocabulary:[
+      {word:"يَجِبُ",     meaningAr:"لَازِمٌ وَضَرُورِيٌّ لَا يُمْكِنُ تَرْكُه",  meaningEn:"it is required",   root:"و-ج-ب", dialectEgy:"لازم"},
+      {word:"بِأَدَب",    meaningAr:"بِاحْتِرَامٍ وَهُدُوءٍ وَمُرَاعَاةِ الآخَرِين",meaningEn:"with respect",    root:"أ-د-ب", dialectEgy:"بأدب"},
+      {word:"تَحِيَّة",   meaningAr:"رَكْعَتَانِ نُصَلِّيهِمَا عِنْدَ دُخُولِ المَسْجِد",meaningEn:"greeting prayer", root:"ح-ي-ي", dialectEgy:"تحية"},
+      {word:"العِبَادَة",  meaningAr:"كُلُّ مَا نَفْعَلُهُ تَقَرُّبًا لِلَّه",        meaningEn:"worship",         root:"ع-ب-د", dialectEgy:"العبادة"},
+      {word:"التَّآخِي",  meaningAr:"التَّوَادُّ وَالمَحَبَّةُ وَالتَّعَاوُنُ بَيْنَ الإِخْوَة",meaningEn:"brotherhood",root:"أ-خ-و", dialectEgy:"التآخي"},
+    ],
+    comprehension:[
+      {question:"مَا المَسْجِد؟",options:["مَدْرَسَةٌ فَقَط","بَيْتُ اللهِ عَلَى الأَرْض","سُوقٌ كَبِير"],answer:1},
+      {question:"كَيْفَ نَدْخُلُ المَسْجِد؟",options:["بِسُرْعَةٍ وَضَوْضَاء","بِأَدَبٍ وَاحْتِرَام","بِالجِرِي"],answer:1},
+      {question:"مَا تَحِيَّةُ المَسْجِد؟",options:["السَّلَامُ عَلَى الجِيرَان","رَكْعَتَانِ عِنْدَ الدُّخُول","الدُّعَاء فَقَط"],answer:1},
+      {question:"مَاذَا يَفْعَلُ النَّاسُ فِي المَسْجِد؟",options:["يَأْكُلُونَ وَيَلْعَبُون","يَعْبُدُونَ وَيَتَعَلَّمُونَ وَيَتَآخَوْن","يَنَامُون فَقَط"],answer:1},
+    ],
+    grammar:[
+      {word:"نَذْهَبُ",   type:"verb", number:"plural"},
+      {word:"المَسَاجِد", type:"noun", number:"plural"},
+      {word:"يَجِبُ",     type:"verb", number:"singular"},
+      {word:"نُصَلِّي",   type:"verb", number:"plural"},
+      {word:"رَكْعَتَان", type:"noun", number:"plural"},
+    ],
+    islamicLink:{theme:"المَسْجِد (The Mosque)",note:"قَالَ النَّبِيُّ ﷺ: «أَحَبُّ البِقَاعِ إِلَى اللهِ المَسَاجِد». أَوَّلُ شَيْءٍ بَنَاهُ النَّبِيُّ ﷺ حِينَ وَصَلَ المَدِينَةَ كَانَ المَسْجِد.",quranRef:"صَحِيحُ مُسْلِم"},
+  },
+  {
+    id:"shukr-19", week:5, title:"شُكْرُ نِعَمِ الله", category:"quran", level:1, emoji:"🌸",
+    passage:"اللهُ أَنْعَمَ عَلَيْنَا بِنِعَمٍ لَا تُحْصَى. نِعْمَةُ الصِّحَّة وَالعَائِلَة وَالطَّعَام. نِعْمَةُ العَقْل وَالسَّمْعِ وَالبَصَر. قَالَ اللهُ: «وَإِنْ تَعُدُّوا نِعْمَةَ اللهِ لَا تُحْصُوهَا». الشُّكْرُ يَزِيدُ النِّعَم. وَالكُفْرُ يُزِيلُهَا.",
+    vocabulary:[
+      {word:"أَنْعَمَ",   meaningAr:"أَعْطَى وَمَنَحَ خَيْرًا كَثِيرًا",         meaningEn:"bestowed/granted",  root:"ن-ع-م", dialectEgy:"أنعم"},
+      {word:"لَا تُحْصَى",meaningAr:"كَثِيرَةٌ جِدًّا لَا يُمْكِنُ عَدُّهَا",   meaningEn:"uncountable",      root:"ح-ص-و", dialectEgy:"مش ممكن تتعد"},
+      {word:"العَقْل",    meaningAr:"القُدْرَةُ عَلَى التَّفْكِيرِ وَالفَهْم",   meaningEn:"mind/intellect",   root:"ع-ق-ل", dialectEgy:"العقل"},
+      {word:"البَصَر",    meaningAr:"نِعْمَةُ الرُّؤْيَةِ وَالنَّظَر",          meaningEn:"sight/vision",     root:"ب-ص-ر", dialectEgy:"البصر"},
+      {word:"تَعُدُّوا",  meaningAr:"تَحْسُبُوا وَتُحْصُوا الأَشْيَاء",         meaningEn:"you count/enumerate",root:"ع-د-د", dialectEgy:"تعدوا"},
+    ],
+    comprehension:[
+      {question:"مَنِ الَّذِي أَنْعَمَ عَلَيْنَا بِالنِّعَم؟",options:["الأَهْل","اللهُ وَحْدَه","الطَّبِيب"],answer:1},
+      {question:"هَلْ يُمْكِنُنَا أَنْ نَعُدَّ نِعَمَ الله؟",options:["نَعَم بِسُهُولَة","نَعَم بِصُعُوبَة","لَا، هِيَ لَا تُحْصَى"],answer:2},
+      {question:"مَاذَا يَفْعَلُ الشُّكْرُ بِالنِّعَم؟",options:["يُنْقِصُهَا","يُزِيلُهَا","يَزِيدُهَا"],answer:2},
+      {question:"مَاذَا يَفْعَلُ الكُفْرُ بِالنِّعَم؟",options:["يَزِيدُهَا","يُزِيلُهَا","لَا شَيْء"],answer:1},
+    ],
+    grammar:[
+      {word:"أَنْعَمَ",   type:"verb",  number:"singular"},
+      {word:"النِّعَمُ",  type:"noun",  number:"plural"},
+      {word:"تَعُدُّوا",  type:"verb",  number:"plural"},
+      {word:"العَقْلُ",   type:"noun",  number:"singular"},
+      {word:"يَزِيدُ",    type:"verb",  number:"singular"},
+    ],
+    islamicLink:{theme:"الشُّكْر (Gratitude)",note:"«لَئِنْ شَكَرْتُمْ لَأَزِيدَنَّكُم». الشُّكْرُ لَيْسَ كَلَامًا فَقَط بَلْ هُوَ اسْتِخْدَامُ النِّعْمَةِ فِي طَاعَةِ اللهِ.",quranRef:"سُورَةُ إِبْرَاهِيمَ: ٧"},
+  },
+  {
+    id:"quranlight-20", week:5, title:"القُرْآنُ نُورٌ وَهُدَى", category:"quran", level:2, emoji:"📖",
+    passage:"القُرْآنُ الكَرِيمُ هُوَ كِتَابُ اللهِ الخَالِد. أُنْزِلَ عَلَى النَّبِيِّ مُحَمَّدٍ ﷺ فِي شَهْرِ رَمَضَان. يَهْدِي القُرْآنُ الإِنْسَانَ إِلَى الطَّرِيقِ الصَّحِيح. حَفِظَهُ اللهُ مِنَ التَّحْرِيفِ وَالتَّغْيِير. مَنْ قَرَأَهُ فَلَهُ بِكُلِّ حَرْفٍ عَشْرُ حَسَنَات.",
+    vocabulary:[
+      {word:"الخَالِد",   meaningAr:"الَّذِي يَبْقَى وَلَا يَنْتَهِي أَبَدًا",   meaningEn:"eternal/everlasting",root:"خ-ل-د", dialectEgy:"الخالد"},
+      {word:"أُنْزِلَ",   meaningAr:"نَزَلَ مِنَ اللهِ إِلَى النَّبِيِّ بِوَاسِطَةِ جِبْرِيل",meaningEn:"was revealed",root:"ن-ز-ل", dialectEgy:"اتنزل"},
+      {word:"يَهْدِي",    meaningAr:"يُرْشِدُ إِلَى الطَّرِيقِ الصَّحِيح",        meaningEn:"guides",           root:"ه-د-ي", dialectEgy:"بيهدي"},
+      {word:"التَّحْرِيف",meaningAr:"التَّغْيِيرُ فِي كَلِمَاتِ الكِتَابِ المُقَدَّس",meaningEn:"distortion/alteration",root:"ح-ر-ف", dialectEgy:"التحريف"},
+      {word:"حَسَنَات",   meaningAr:"جَمْعُ حَسَنَة: الأَجْرُ وَالثَّوَابُ عِنْدَ الله",meaningEn:"good deeds/rewards",root:"ح-س-ن", dialectEgy:"حسنات"},
+    ],
+    comprehension:[
+      {question:"مَتَى أُنْزِلَ القُرْآن؟",options:["فِي شَوَّال","فِي رَمَضَان","فِي مُحَرَّم"],answer:1},
+      {question:"مَاذَا يَفْعَلُ القُرْآنُ لِلْإِنْسَان؟",options:["يُسَلِّيه فَقَط","يَهْدِيهِ إِلَى الطَّرِيقِ الصَّحِيح","يُعَلِّمُهُ الرِّيَاضِيَّات"],answer:1},
+      {question:"هَلْ تَغَيَّرَ القُرْآنُ مِنْذُ نَزَل؟",options:["نَعَم كَثِيرًا","قَلِيلًا","لَا، حَفِظَهُ اللهُ"],answer:2},
+      {question:"كَمْ حَسَنَةٌ لِكُلِّ حَرْفٍ مِنَ القُرْآن؟",options:["وَاحِدَة","خَمْس","عَشْر"],answer:2},
+    ],
+    grammar:[
+      {word:"أُنْزِلَ",   type:"verb",  number:"singular"},
+      {word:"الحُرُوف",   type:"noun",  number:"plural"},
+      {word:"يَهْدِي",    type:"verb",  number:"singular"},
+      {word:"حَسَنَاتٌ",  type:"noun",  number:"plural"},
+      {word:"حَفِظَ",     type:"verb",  number:"singular"},
+    ],
+    islamicLink:{theme:"فَضْلُ قِرَاءَةِ القُرْآن (Virtue of Reading Quran)",note:"قَالَ النَّبِيُّ ﷺ: «اِقْرَأُوا القُرْآنَ فَإِنَّهُ يَأْتِي يَوْمَ القِيَامَةِ شَفِيعًا لِأَصْحَابِه». اجْعَلِ القُرْآنَ رَفِيقَكَ كُلَّ يَوْم.",quranRef:"صَحِيحُ مُسْلِم"},
+  },
+];
+
+const FALLBACK_BANKS = {
+  "noun-verb":{titleAr:"اسْمٌ أَمْ فِعْل؟",items:[
+    {word:"الدِّيكُ",answer:"noun"},{word:"يَصِيحُ",answer:"verb"},
+    {word:"أَبْقَارٌ",answer:"noun"},{word:"يَحْلُبُ",answer:"verb"},
+    {word:"الكِتَابُ",answer:"noun"},{word:"يَقْرَأُ",answer:"verb"},
+    {word:"المَدْرَسَةُ",answer:"noun"},{word:"يَكْتُبُ",answer:"verb"},
+    {word:"الطَّالِبُ",answer:"noun"},{word:"يَدْرُسُ",answer:"verb"},
+    {word:"الأُمُّ",answer:"noun"},{word:"تَطْبُخُ",answer:"verb"},
+    {word:"المَسْجِدُ",answer:"noun"},{word:"يُصَلِّي",answer:"verb"},
+    {word:"الصَّلَاةُ",answer:"noun"},{word:"يَذْكُرُ",answer:"verb"},
+    {word:"القُرْآنُ",answer:"noun"},{word:"يَتْلُو",answer:"verb"},
+    {word:"الرَّحْمَةُ",answer:"noun"},{word:"يَرْحَمُ",answer:"verb"},
+    {word:"الشَّمْسُ",answer:"noun"},{word:"تُشْرِقُ",answer:"verb"},
+    {word:"الشَّجَرَةُ",answer:"noun"},{word:"تَنْمُو",answer:"verb"},
+    {word:"الأَسَدُ",answer:"noun"},{word:"يَنَامُ",answer:"verb"},
+    {word:"الفَرِيقُ",answer:"noun"},{word:"يَرْكُضُ",answer:"verb"},
+    {word:"الصَّبْرُ",answer:"noun"},{word:"خَسِرَ",answer:"verb"},
+    {word:"الدُّعَاءُ",answer:"noun"},{word:"يَشْكُرُ",answer:"verb"},
+  ]},
+  "singular-plural":{titleAr:"مُفْرَدٌ أَمْ جَمْع؟",items:[
+    {word:"كِتَابٌ",answer:"singular",pair:"كُتُبٌ"},{word:"كُتُبٌ",answer:"plural",pair:"كِتَابٌ"},
+    {word:"طِفْلٌ",answer:"singular",pair:"أَطْفَالٌ"},{word:"أَطْفَالٌ",answer:"plural",pair:"طِفْلٌ"},
+    {word:"بَقَرَةٌ",answer:"singular",pair:"أَبْقَارٌ"},{word:"أَبْقَارٌ",answer:"plural",pair:"بَقَرَةٌ"},
+    {word:"مُعَلِّمٌ",answer:"singular",pair:"مُعَلِّمُونَ"},{word:"مُعَلِّمُونَ",answer:"plural",pair:"مُعَلِّمٌ"},
+    {word:"مَسْجِدٌ",answer:"singular",pair:"مَسَاجِدُ"},{word:"مَسَاجِدُ",answer:"plural",pair:"مَسْجِدٌ"},
+    {word:"وَلَدٌ",answer:"singular",pair:"أَوْلَادٌ"},{word:"أَوْلَادٌ",answer:"plural",pair:"وَلَدٌ"},
+    {word:"بَيْتٌ",answer:"singular",pair:"بُيُوتٌ"},{word:"بُيُوتٌ",answer:"plural",pair:"بَيْتٌ"},
+    {word:"صَدِيقٌ",answer:"singular",pair:"أَصْدِقَاءُ"},{word:"أَصْدِقَاءُ",answer:"plural",pair:"صَدِيقٌ"},
+  ]},
+  "word-meaning":{titleAr:"مَا مَعْنَى الكَلِمَة؟",items:[
+    {word:"مُبَكِّرًا",options:["early","late","slowly"],answer:0},
+    {word:"هَادِئٌ",options:["loud","calm","fast"],answer:1},
+    {word:"الصَّبْرُ",options:["anger","patience","happiness"],answer:1},
+    {word:"يَشْكُرُ",options:["thanks","ignores","forgets"],answer:0},
+    {word:"الظِّلُّ",options:["sunshine","shadow","rain"],answer:1},
+    {word:"خَسِرَ",options:["won","tied","lost"],answer:2},
+    {word:"الرَّحْمَةُ",options:["anger","mercy","sadness"],answer:1},
+    {word:"يُصَلِّي",options:["prays","reads","writes"],answer:0},
+    {word:"يَتْلُو",options:["recites","draws","runs"],answer:0},
+    {word:"تَنْمُو",options:["dries","grows","falls"],answer:1},
+  ]},
+  "grammar":{titleAr:"قَوَاعِدُ اللُّغَة",items:[]},
+};
+
+// ── Load external content if available ────────────────────────────────────────
+function useContent() {
+  const [lessons,  setLessons]  = useState(FALLBACK_LESSONS);
+  const [banks,    setBanks]    = useState(FALLBACK_BANKS);
+  const [loaded,   setLoaded]   = useState(false);
+
+  useEffect(() => {
+    fetch("arabic_content.json")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data && data.lessons && data.lessons.length > 0) {
+          setLessons(data.lessons);
+          // merge banks: external has items array; add titleAr if missing
+          const ext = data.topicBanks || {};
+          const merged = { ...FALLBACK_BANKS };
+          ["noun-verb","singular-plural","word-meaning","grammar"].forEach(k => {
+            if (ext[k] && Array.isArray(ext[k])) {
+              merged[k] = { ...(FALLBACK_BANKS[k]||{}), items: ext[k] };
+            }
+          });
+          setBanks(merged);
+          setLoaded(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  return { lessons, banks, loaded };
+}
+
+// ── Drill session builder ─────────────────────────────────────────────────────
+function buildDrillSession(bankKey, banks, progress, count=10) {
+  const bank = banks[bankKey];
+  if (!bank) return [];
+  const wrongCounts = progress?.drillWrong?.[bankKey] || {};
+  const weighted = bank.items.flatMap(item => {
+    const key = item.word || item.topic || "";
+    const w = Math.min(3, 1 + (wrongCounts[key]||0));
+    return Array(w).fill(item);
+  });
+  return shuffle(weighted).slice(0, count);
+}
+
+// ── Week grouping ─────────────────────────────────────────────────────────────
+function groupByWeek(lessons) {
+  const weeks = {};
+  lessons.forEach(l => {
+    const w = l.week || 1;
+    if (!weeks[w]) weeks[w] = [];
+    weeks[w].push(l);
+  });
+  return weeks;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI COMPONENTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function StarRow({ score }) {
+  const n = score >= 90 ? 3 : score >= 60 ? 2 : score >= 30 ? 1 : 0;
+  return e("span", { style:{display:"inline-flex",gap:2} },
+    ...[1,2,3].map(i => I.star(16, i<=n, P.gold))
+  );
+}
+
+// ── Word popup ────────────────────────────────────────────────────────────────
+function WordPopup({ word, vocabMap, onClose }) {
+  const entry = vocabMap[strip(word)] || vocabMap[word.trim()];
+  if (!entry) return null;
+  return e("div",{onClick:onClose,style:{position:"fixed",inset:0,background:"rgba(15,15,40,0.55)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}},
+    e("div",{onClick:ev=>ev.stopPropagation(),className:"pop",style:{background:"#fff",borderRadius:20,padding:24,maxWidth:340,width:"100%",boxShadow:"0 24px 80px rgba(0,0,0,0.25)"}},
+      e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}},
+        e("span",{style:{...AF,fontSize:34,fontWeight:700,color:P.indigo,direction:"rtl"}},entry.word),
+        e("button",{onClick:onClose,style:{background:P.grayL,border:"none",borderRadius:10,padding:8}},I.x(16,P.gray))
+      ),
+      entry.root && e("div",{style:{background:P.indigoL,borderRadius:8,padding:"5px 12px",marginBottom:12,display:"inline-block"}},
+        e("span",{style:{...AF,fontSize:13,color:P.indigoD,direction:"rtl"}}, "الجَذْر: "+entry.root)
+      ),
+      e("p",{style:{...AF,fontSize:17,color:"#1f2937",direction:"rtl",marginBottom:8,lineHeight:1.8}},entry.meaningAr),
+      e("p",{style:{fontSize:14,color:P.gray,direction:"ltr",fontStyle:"italic",marginBottom:entry.dialectEgy?10:0}},entry.meaningEn),
+      entry.dialectEgy && e("div",{style:{background:P.tealL,borderRadius:10,padding:"8px 14px",direction:"rtl"}},
+        e("span",{style:{...AF,fontSize:13,color:"#0f766e"}}, "بِالعَامِيَّة: "),
+        e("span",{style:{...AF,fontSize:15,fontWeight:700,color:"#0f766e"}},entry.dialectEgy)
+      )
+    )
+  );
+}
+
+// ── Passage view ──────────────────────────────────────────────────────────────
+function PassageView({ lesson, onNext }) {
+  const [popup, setPopup] = useState(null);
+  const vocabMap = useMemo(() => {
+    const m = {};
+    lesson.vocabulary.forEach(v => { m[v.word]=v; m[strip(v.word)]=v; });
+    return m;
+  }, [lesson]);
+  const cat = CATEGORY[lesson.category] || CATEGORY.story;
+  const words = lesson.passage.split(/(\s+)/);
+
+  return e("div",{className:"slide"},
+    // passage card
+    e("div",{style:{background:"#fff",borderRadius:20,padding:24,marginBottom:16,boxShadow:"0 4px 20px rgba(99,102,241,.08)"}},
+      e("div",{style:{...AF,fontSize:24,lineHeight:2.4,direction:"rtl",color:"#111827"}},
+        ...words.map((w,i)=>{
+          if(/\s+/.test(w))return e("span",{key:i},w);
+          const isV=lesson.vocabulary.some(v=>v.word===w.trim()||strip(v.word)===strip(w));
+          return e("span",{key:i,onClick:()=>setPopup(w),style:{cursor:"pointer",
+            background:isV?"rgba(99,102,241,.1)":"transparent",
+            borderBottom:isV?`2px solid ${P.indigo}`:"none",
+            borderRadius:4,paddingInline:2,paddingBottom:1}},w);
+        })
+      )
+    ),
+    // vocab chips
+    e("div",{style:{marginBottom:20}},
+      e("p",{style:{fontSize:13,color:P.gray,marginBottom:10,direction:"ltr"}},
+        "👆 Tap a highlighted word to see its meaning:"),
+      e("div",{style:{display:"flex",flexWrap:"wrap",gap:8,direction:"rtl"}},
+        ...lesson.vocabulary.map(v=>
+          e("button",{key:v.word,onClick:()=>setPopup(v.word),
+            style:{...AF,background:cat.bg,color:cat.color,border:`1.5px solid ${cat.color}30`,
+              borderRadius:20,padding:"7px 16px",fontSize:15,fontWeight:600}},v.word)
+        )
+      )
+    ),
+    e("button",{onClick:onNext,style:{width:"100%",background:`linear-gradient(135deg,${P.indigo},${P.purple})`,
+      color:"#fff",border:"none",borderRadius:14,padding:"15px 0",fontSize:17,fontWeight:800,
+      boxShadow:"0 6px 20px rgba(99,102,241,.4)"}},
+      "ابْدَأِ الاخْتِبَار ← "),
+    popup && e(WordPopup,{word:popup,vocabMap,onClose:()=>setPopup(null)})
+  );
+}
+
+// ── Comprehension quiz ────────────────────────────────────────────────────────
+function ComprehensionQuiz({ lesson, onFinish }) {
+  const [idx,setIdx]         = useState(0);
+  const [selected,setSelected] = useState(null);
+  const [score,setScore]     = useState(0);
+  const [done,setDone]       = useState(false);
+  const q = lesson.comprehension[idx];
+
+  const choose = i => {
+    if(selected!==null)return;
+    setSelected(i);
+    if(i===q.answer)setScore(s=>s+1);
+  };
+  const next = () => {
+    if(idx+1<lesson.comprehension.length){setIdx(i=>i+1);setSelected(null);}
+    else setDone(true);
+  };
+
+  if(done){
+    const pct=Math.round(score/lesson.comprehension.length*100);
+    const msg = pct>=75?"أَحْسَنْتَ! 🌟":pct>=50?"جَيِّدٌ جِدًّا! 👍":"حَاوِلْ مَرَّةً أُخْرَى! 💪";
+    return e("div",{className:"pop",style:{textAlign:"center",padding:"24px 0"}},
+      e("div",{style:{fontSize:72,marginBottom:12}},pct>=75?"🏅":pct>=50?"⭐":"💪"),
+      e("h3",{style:{...AF,fontSize:24,fontWeight:700,color:P.indigo,direction:"rtl",marginBottom:8}},msg),
+      e("p",{style:{fontSize:16,color:P.gray,marginBottom:24}},`${score}/${lesson.comprehension.length} correct (${pct}%)`),
+      e("button",{onClick:()=>onFinish(pct),
+        style:{background:`linear-gradient(135deg,${P.indigo},${P.purple})`,color:"#fff",border:"none",
+          borderRadius:14,padding:"14px 32px",fontSize:16,fontWeight:800,boxShadow:"0 6px 20px rgba(99,102,241,.4)"}},
+        "التَّالِي ←")
+    );
+  }
+
+  return e("div",{className:"slide"},
+    e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
+      e("span",{style:{fontSize:13,color:P.gray,fontWeight:700}},`${idx+1} / ${lesson.comprehension.length}`),
+      e("div",{style:{display:"flex",gap:4}},
+        ...lesson.comprehension.map((_,i)=>
+          e("div",{key:i,style:{width:8,height:8,borderRadius:4,
+            background:i<idx?P.green:i===idx?P.indigo:"#e5e7eb"}})
+        )
+      ),
+      e("span",{style:{fontSize:13,color:P.green,fontWeight:700}},`✓ ${score}`)
+    ),
+    e("div",{style:{background:`linear-gradient(135deg,${P.indigoL},${P.purpleL})`,borderRadius:16,padding:20,marginBottom:20}},
+      e("p",{style:{...AF,fontSize:21,fontWeight:600,color:"#1e1b4b",direction:"rtl",lineHeight:1.9,margin:0}},q.question)
+    ),
+    e("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+      ...q.options.map((opt,i)=>{
+        let bg="#fff",border=`2px solid #e5e7eb`,color="#1f2937",weight=400;
+        if(selected!==null){
+          if(i===q.answer){bg=P.greenL;border=`2px solid ${P.green}`;color=P.greenD;weight=700;}
+          else if(i===selected){bg=P.redL;border=`2px solid ${P.red}`;color="#991b1b";}
+        }
+        return e("button",{key:i,onClick:()=>choose(i),
+          style:{...AF,background:bg,border,borderRadius:12,padding:"15px 18px",fontSize:19,
+            direction:"rtl",textAlign:"right",cursor:selected===null?"pointer":"default",
+            color,fontWeight:weight,display:"flex",alignItems:"center",gap:10,
+            boxShadow:selected===null?"0 2px 8px rgba(0,0,0,.05)":"none"}},
+          selected!==null&&i===q.answer&&I.check(18,P.green),
+          selected!==null&&i===selected&&i!==q.answer&&I.xcircle(18,P.red),
+          opt
+        );
+      })
+    ),
+    selected!==null&&e("button",{onClick:next,
+      style:{width:"100%",marginTop:16,background:`linear-gradient(135deg,${P.indigo},${P.purple})`,
+        color:"#fff",border:"none",borderRadius:14,padding:"15px 0",fontSize:16,fontWeight:800,
+        boxShadow:"0 6px 20px rgba(99,102,241,.4)"}},
+      idx+1<lesson.comprehension.length?"السُّؤَالُ التَّالِي →":"اعْرِضِ النَّتِيجَة →")
+  );
+}
+
+// ── Grammar game ──────────────────────────────────────────────────────────────
+function GrammarGame({ lesson, onFinish }) {
+  const [idx,setIdx]       = useState(0);
+  const [typeAns,setTypeAns] = useState(null);
+  const [numAns,setNumAns] = useState(null);
+  const [correct,setCorrect] = useState(0);
+  const [done,setDone]     = useState(false);
+  const item = lesson.grammar[idx];
+
+  const chooseNum = n => {
+    setNumAns(n);
+    if(typeAns===item.type && n===item.number) setCorrect(c=>c+1);
+    setTimeout(()=>{
+      if(idx+1<lesson.grammar.length){setIdx(i=>i+1);setTypeAns(null);setNumAns(null);}
+      else setDone(true);
+    },900);
+  };
+
+  if(done){
+    const pct=Math.round(correct/lesson.grammar.length*100);
+    return e("div",{className:"pop",style:{textAlign:"center",padding:"24px 0"}},
+      e("div",{style:{fontSize:72,marginBottom:12}},pct>=75?"🎯":"📚"),
+      e("h3",{style:{...AF,fontSize:24,fontWeight:700,color:P.indigo,direction:"rtl",marginBottom:8}},
+        pct>=75?"مَمْتَاز!":"اِسْتَمِرَّ فِي التَّدْرِيب!"),
+      e("p",{style:{fontSize:16,color:P.gray,marginBottom:24}},`${correct}/${lesson.grammar.length} correct (${pct}%)`),
+      e("button",{onClick:()=>onFinish(pct),
+        style:{background:`linear-gradient(135deg,${P.indigo},${P.purple})`,color:"#fff",border:"none",
+          borderRadius:14,padding:"14px 32px",fontSize:16,fontWeight:800,boxShadow:"0 6px 20px rgba(99,102,241,.4)"}},
+        "التَّالِي ←")
+    );
+  }
+
+  return e("div",{className:"slide"},
+    e("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:16}},
+      e("span",{style:{fontSize:13,color:P.gray,fontWeight:700}},`${idx+1} / ${lesson.grammar.length}`),
+      e("span",{style:{fontSize:13,color:P.green,fontWeight:700}},`✓ ${correct}`)
+    ),
+    e("div",{style:{background:`linear-gradient(135deg,${P.purpleL},${P.indigoL})`,borderRadius:20,
+      padding:32,textAlign:"center",marginBottom:24,boxShadow:"0 4px 20px rgba(168,85,247,.12)"}},
+      e("span",{style:{...AF,fontSize:48,fontWeight:700,color:P.indigo,direction:"rtl"}},item.word)
+    ),
+    e("div",{style:{marginBottom:20}},
+      e("p",{style:{...AF,fontSize:17,color:"#374151",direction:"rtl",marginBottom:14,fontWeight:700,textAlign:"center"}},"هَذِهِ الكَلِمَة:"),
+      e("div",{style:{display:"flex",gap:14}},
+        ...["noun","verb"].map(t=>{
+          let bg="#fff",border="2px solid #e5e7eb",color="#1f2937",shadow="0 2px 8px rgba(0,0,0,.06)";
+          if(typeAns!==null){
+            if(t===item.type){bg=P.greenL;border=`2px solid ${P.green}`;color=P.greenD;shadow="none";}
+            else if(t===typeAns){bg=P.redL;border=`2px solid ${P.red}`;color="#991b1b";shadow="none";}
+          }
+          return e("button",{key:t,onClick:()=>setTypeAns(t),
+            disabled:typeAns!==null&&numAns!==null,
+            style:{flex:1,...AF,background:bg,border,borderRadius:14,padding:"18px 0",
+              fontSize:24,fontWeight:700,cursor:"pointer",color,boxShadow:shadow}},
+            t==="noun"?"اسْمٌ 🏷️":"فِعْلٌ ⚡");
+        })
+      )
+    ),
+    typeAns!==null && e("div",null,
+      e("p",{style:{...AF,fontSize:17,color:"#374151",direction:"rtl",marginBottom:14,fontWeight:700,textAlign:"center"}},"وَهِيَ:"),
+      e("div",{style:{display:"flex",gap:14}},
+        ...["singular","plural"].map(n=>{
+          let bg="#fff",border="2px solid #e5e7eb",color="#1f2937",shadow="0 2px 8px rgba(0,0,0,.06)";
+          if(numAns!==null){
+            if(n===item.number){bg=P.greenL;border=`2px solid ${P.green}`;color=P.greenD;shadow="none";}
+            else if(n===numAns){bg=P.redL;border=`2px solid ${P.red}`;color="#991b1b";shadow="none";}
+          }
+          return e("button",{key:n,onClick:()=>chooseNum(n),disabled:numAns!==null,
+            style:{flex:1,...AF,background:bg,border,borderRadius:14,padding:"18px 0",
+              fontSize:22,fontWeight:700,cursor:"pointer",color,boxShadow:shadow}},
+            n==="singular"?"مُفْرَد 1️⃣":"جَمْع 🔢");
+        })
+      )
+    )
+  );
+}
+
+// ── Islamic card ──────────────────────────────────────────────────────────────
+function IslamicCard({ lesson, onFinish }) {
+  return e("div",{className:"pop",
+    style:{background:"linear-gradient(160deg,#fffbeb 0%,#f0fdf4 50%,#ecfdf5 100%)",
+      borderRadius:20,padding:28,boxShadow:"0 4px 24px rgba(234,179,8,.15)"}},
+    e("div",{style:{textAlign:"center",marginBottom:18}},
+      e("span",{style:{fontSize:56}},lesson.emoji||"🌟"),
+      e("div",{style:{background:P.gold,height:4,borderRadius:2,width:60,margin:"12px auto 0"}})
+    ),
+    e("h3",{style:{...AF,fontSize:21,fontWeight:700,color:"#78350f",direction:"rtl",textAlign:"center",marginBottom:16}},
+      "🌙 الرَّابِطُ الإِسْلَامِي"),
+    e("div",{style:{background:"rgba(255,255,255,.8)",borderRadius:14,padding:18,marginBottom:16,
+      border:"1.5px solid #fef3c7"}},
+      e("p",{style:{...AF,fontSize:19,fontWeight:700,color:P.indigo,direction:"rtl",marginBottom:10}},
+        lesson.islamicLink.theme),
+      e("p",{style:{...AF,fontSize:17,color:"#1f2937",direction:"rtl",lineHeight:2}},
+        lesson.islamicLink.note)
+    ),
+    lesson.islamicLink.quranRef && e("p",{style:{...AF,fontSize:14,color:P.gray,direction:"rtl",
+      textAlign:"center",marginBottom:20}},"📖 "+lesson.islamicLink.quranRef),
+    e("button",{onClick:onFinish,
+      style:{width:"100%",background:"linear-gradient(135deg,#f59e0b,#d97706)",color:"#fff",
+        border:"none",borderRadius:14,padding:"15px 0",fontSize:17,fontWeight:800,
+        boxShadow:"0 6px 20px rgba(234,179,8,.4)"}},
+      "أَنْهِ الدَّرْسَ ✨")
+  );
+}
+
+// ── Lesson flow ───────────────────────────────────────────────────────────────
+function LessonFlow({ lesson, onComplete, onBack }) {
+  const [step, setStep]           = useState("passage");
+  const [quizScore,setQuizScore]  = useState(0);
+  const [gramScore,setGramScore]  = useState(0);
+  const steps = ["passage","quiz","grammar","islamic"];
+  const labels= ["قِرَاءَة","فَهْم","قَوَاعِد","إِسْلَام"];
+  const si    = steps.indexOf(step);
+  const cat   = CATEGORY[lesson.category] || CATEGORY.story;
+
+  return e("div",null,
+    // header strip
+    e("div",{style:{background:`linear-gradient(135deg,${cat.color},${P.purple})`,borderRadius:16,
+      padding:"16px 20px",marginBottom:20,display:"flex",alignItems:"center",gap:12}},
+      e("button",{onClick:onBack,style:{background:"rgba(255,255,255,.2)",border:"none",borderRadius:10,
+        padding:8,flexShrink:0}},I.back(18,"#fff")),
+      e("span",{style:{fontSize:28}},lesson.emoji||"📖"),
+      e("div",{style:{flex:1,overflow:"hidden"}},
+        e("h2",{style:{...AF,fontSize:18,fontWeight:700,color:"#fff",direction:"rtl",
+          margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},lesson.title),
+        e("p",{style:{fontSize:11,color:"rgba(255,255,255,.8)",margin:0,direction:"ltr"}},
+          `Week ${lesson.week||1} · Level ${lesson.level}`)
+      )
+    ),
+    // progress bar
+    e("div",{style:{display:"flex",gap:6,marginBottom:6}},
+      ...steps.map((_,i)=>e("div",{key:i,style:{flex:1,height:6,borderRadius:3,
+        background:i<=si?cat.color:"#e5e7eb",transition:"background .3s"}}))
+    ),
+    e("div",{style:{display:"flex",gap:6,marginBottom:20,direction:"rtl"}},
+      ...labels.map((l,i)=>e("span",{key:i,style:{flex:1,textAlign:"center",...AF,fontSize:11,
+        color:i===si?cat.color:P.gray,fontWeight:i===si?800:400}}," "+l))
+    ),
+    step==="passage" && e(PassageView,{lesson,onNext:()=>setStep("quiz")}),
+    step==="quiz"    && e(ComprehensionQuiz,{lesson,onFinish:p=>{setQuizScore(p);setStep("grammar");}}),
+    step==="grammar" && e(GrammarGame,{lesson,onFinish:p=>{setGramScore(p);setStep("islamic");}}),
+    step==="islamic" && e(IslamicCard,{lesson,onFinish:()=>onComplete(lesson.id,quizScore,gramScore)})
+  );
+}
+
+// ── Drill session ─────────────────────────────────────────────────────────────
+function DrillSession({ bankKey, banks, progress, onFinish, onHome }) {
+  const [items]          = useState(()=>buildDrillSession(bankKey,banks,progress));
+  const [idx,setIdx]     = useState(0);
+  const [selected,setSel]= useState(null);
+  const [score,setScore] = useState(0);
+  const [wrongs,setWrongs]= useState({});
+  const [done,setDone]   = useState(false);
+  const item = items[idx];
+
+  const choose = ans => {
+    if(selected!==null)return;
+    setSel(ans);
+    if(ans===item.answer) setScore(s=>s+1);
+    else { const k=item.word||item.topic||""; setWrongs(w=>({...w,[k]:(w[k]||0)+1})); }
+  };
+  const next = ()=>{
+    if(idx+1<items.length){setIdx(i=>i+1);setSel(null);}
+    else setDone(true);
+  };
+
+  if(done){
+    const pct=Math.round(score/items.length*100);
+    return e("div",{className:"pop",style:{textAlign:"center",padding:24}},
+      e("div",{style:{fontSize:80,marginBottom:12}},pct>=80?"🏆":pct>=50?"⭐":"💪"),
+      e("h3",{style:{...AF,fontSize:26,fontWeight:700,color:P.indigo,direction:"rtl",marginBottom:8}},
+        pct>=80?"مَمْتَاز!":pct>=50?"جَيِّدٌ جِدًّا!":"اِسْتَمِرَّ في التَّدْرِيب!"),
+      e("p",{style:{fontSize:17,color:P.gray,marginBottom:24}},`${score}/${items.length} correct (${pct}%)`),
+      e("div",{style:{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}},
+        onHome && e("button",{onClick:onHome,
+          style:{background:P.grayL,color:P.gray,border:"none",borderRadius:14,
+            padding:"14px 24px",fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:6}},
+          I.home(16,P.gray)," الرَّئِيسِيَّة"),
+        e("button",{onClick:()=>onFinish(score,items.length,wrongs),
+          style:{background:`linear-gradient(135deg,${P.indigo},${P.purple})`,color:"#fff",border:"none",
+            borderRadius:14,padding:"14px 28px",fontSize:15,fontWeight:800,boxShadow:"0 6px 20px rgba(99,102,241,.4)"}},
+          "التَّالِي →")
+      )
+    );
+  }
+
+  const renderDrillItem = ()=>{
+    if(bankKey==="noun-verb") return e("div",null,
+      e("div",{style:{background:`linear-gradient(135deg,${P.purpleL},${P.indigoL})`,borderRadius:20,
+        padding:36,textAlign:"center",marginBottom:24,boxShadow:"0 4px 20px rgba(168,85,247,.12)"}},
+        e("span",{style:{...AF,fontSize:52,fontWeight:700,color:P.indigo,direction:"rtl"}},item.word)
+      ),
+      e("p",{style:{...AF,fontSize:17,color:"#374151",direction:"rtl",marginBottom:14,fontWeight:700,textAlign:"center"}},"هَذِهِ الكَلِمَة:"),
+      e("div",{style:{display:"flex",gap:14}},
+        ...["noun","verb"].map(t=>{
+          let bg="#fff",border="2px solid #e5e7eb",col="#1f2937";
+          if(selected!==null){
+            if(t===item.answer){bg=P.greenL;border=`2px solid ${P.green}`;col=P.greenD;}
+            else if(t===selected){bg=P.redL;border=`2px solid ${P.red}`;col="#991b1b";}
+          }
+          return e("button",{key:t,onClick:()=>choose(t),
+            style:{flex:1,...AF,background:bg,border,borderRadius:14,padding:"20px 0",
+              fontSize:26,fontWeight:700,cursor:selected===null?"pointer":"default",color:col,
+              boxShadow:"0 2px 8px rgba(0,0,0,.06)"}},
+            t==="noun"?"اسْمٌ 🏷️":"فِعْلٌ ⚡");
+        })
+      )
+    );
+
+    if(bankKey==="singular-plural") return e("div",null,
+      e("div",{style:{background:`linear-gradient(135deg,${P.tealL},${P.skyL})`,borderRadius:20,
+        padding:36,textAlign:"center",marginBottom:24,boxShadow:"0 4px 20px rgba(20,184,166,.12)"}},
+        e("span",{style:{...AF,fontSize:52,fontWeight:700,color:P.teal,direction:"rtl"}},item.word)
+      ),
+      e("p",{style:{...AF,fontSize:17,color:"#374151",direction:"rtl",marginBottom:14,fontWeight:700,textAlign:"center"}},"هَذِهِ الكَلِمَة:"),
+      e("div",{style:{display:"flex",gap:14}},
+        ...["singular","plural"].map(t=>{
+          let bg="#fff",border="2px solid #e5e7eb",col="#1f2937";
+          if(selected!==null){
+            if(t===item.answer){bg=P.greenL;border=`2px solid ${P.green}`;col=P.greenD;}
+            else if(t===selected){bg=P.redL;border=`2px solid ${P.red}`;col="#991b1b";}
+          }
+          return e("button",{key:t,onClick:()=>choose(t),
+            style:{flex:1,...AF,background:bg,border,borderRadius:14,padding:"20px 0",
+              fontSize:24,fontWeight:700,cursor:selected===null?"pointer":"default",color:col,
+              boxShadow:"0 2px 8px rgba(0,0,0,.06)"}},
+            t==="singular"?"مُفْرَد 1️⃣":"جَمْع 🔢");
+        })
+      ),
+      selected!==null && e("div",{style:{background:P.goldL,borderRadius:12,padding:14,marginTop:14,
+        direction:"rtl",...AF,border:`1.5px solid ${P.gold}`}},
+        e("span",{style:{fontSize:15,color:"#92400e"}},
+          item.answer==="singular"?"الجَمْع: "+item.pair:"المُفْرَد: "+item.pair)
+      )
+    );
+
+    if(bankKey==="word-meaning") return e("div",null,
+      e("div",{style:{background:`linear-gradient(135deg,${P.orangeL},${P.goldL})`,borderRadius:20,
+        padding:36,textAlign:"center",marginBottom:24,boxShadow:"0 4px 20px rgba(249,115,22,.12)"}},
+        e("span",{style:{...AF,fontSize:46,fontWeight:700,color:P.orange,direction:"rtl"}},item.word)
+      ),
+      e("p",{style:{fontSize:16,color:"#374151",marginBottom:14,fontWeight:700}},"What does this word mean?"),
+      e("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+        ...item.options.map((opt,i)=>{
+          let bg="#fff",border="2px solid #e5e7eb",col="#1f2937";
+          if(selected!==null){
+            if(i===item.answer){bg=P.greenL;border=`2px solid ${P.green}`;col=P.greenD;}
+            else if(i===selected){bg=P.redL;border=`2px solid ${P.red}`;col="#991b1b";}
+          }
+          return e("button",{key:i,onClick:()=>choose(i),
+            style:{background:bg,border,borderRadius:12,padding:"15px 18px",fontSize:17,
+              textAlign:"left",cursor:selected===null?"pointer":"default",color:col,
+              display:"flex",alignItems:"center",gap:10,fontWeight:400,
+              boxShadow:"0 2px 8px rgba(0,0,0,.05)"}},
+            selected!==null&&i===item.answer&&I.check(18,P.green),
+            selected!==null&&i===selected&&i!==item.answer&&I.xcircle(18,P.red),
+            opt
+          );
+        })
+      )
+    );
+
+    if(bankKey==="grammar") return e("div",null,
+      e("div",{style:{background:P.indigoL,borderRadius:12,padding:"8px 16px",marginBottom:14,
+        textAlign:"center",direction:"rtl"}},
+        e("span",{style:{...AF,fontSize:13,color:P.indigoD,fontWeight:700}},
+          "📐 "+item.topic)
+      ),
+      e("div",{style:{background:`linear-gradient(135deg,${P.indigoL},${P.purpleL})`,borderRadius:20,
+        padding:"28px 20px",textAlign:"center",marginBottom:20,boxShadow:"0 4px 20px rgba(99,102,241,.12)"}},
+        e("span",{style:{...AF,fontSize:22,fontWeight:700,color:P.indigo,direction:"rtl",lineHeight:1.8}},
+          item.question)
+      ),
+      e("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+        ...item.options.map((opt,i)=>{
+          let bg="#fff",border="2px solid #e5e7eb",col="#1f2937";
+          if(selected!==null){
+            if(i===item.answer){bg=P.greenL;border=`2px solid ${P.green}`;col=P.greenD;}
+            else if(i===selected){bg=P.redL;border=`2px solid ${P.red}`;col="#991b1b";}
+          }
+          return e("button",{key:i,onClick:()=>choose(i),
+            style:{...AF,background:bg,border,borderRadius:12,padding:"15px 18px",fontSize:18,
+              textAlign:"right",cursor:selected===null?"pointer":"default",color:col,
+              display:"flex",alignItems:"center",gap:10,fontWeight:600,direction:"rtl",
+              boxShadow:"0 2px 8px rgba(0,0,0,.05)"}},
+            selected!==null&&i===item.answer&&I.check(18,P.green),
+            selected!==null&&i===selected&&i!==item.answer&&I.xcircle(18,P.red),
+            opt
+          );
+        })
+      )
+    );
+  };
+
+  return e("div",{className:"slide"},
+    e("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:14}},
+      onHome && e("button",{onClick:onHome,
+        style:{background:P.grayL,border:"none",borderRadius:10,padding:"6px 10px",
+          display:"flex",alignItems:"center",gap:4,fontSize:12,color:P.gray,fontWeight:700,flexShrink:0}},
+        I.home(15,P.gray)," الرَّئِيسِيَّة"),
+      e("span",{style:{fontSize:13,color:P.gray,fontWeight:700,marginRight:"auto"}},`${idx+1} / ${items.length}`),
+      e("span",{style:{fontSize:13,color:P.green,fontWeight:700}},`✓ ${score}`)
+    ),
+    e("div",{style:{background:"#e5e7eb",borderRadius:6,height:8,marginBottom:20}},
+      e("div",{style:{background:`linear-gradient(90deg,${P.indigo},${P.purple})`,height:8,borderRadius:6,
+        width:`${(idx+1)/items.length*100}%`,transition:"width .3s"}})
+    ),
+    renderDrillItem(),
+    selected!==null && e("button",{onClick:next,
+      style:{width:"100%",marginTop:18,background:`linear-gradient(135deg,${P.indigo},${P.purple})`,
+        color:"#fff",border:"none",borderRadius:14,padding:"15px 0",fontSize:16,fontWeight:800,
+        boxShadow:"0 6px 20px rgba(99,102,241,.4)"}},
+      idx+1<items.length?"التَّالِي →":"اعْرِضِ النَّتِيجَة →")
+  );
+}
+
+// ── Drill picker ──────────────────────────────────────────────────────────────
+function DrillPicker({ banks, progress, onStart, onBack }) {
+  const drillStats = progress?.drillStats || {};
+  const drills = [
+    {key:"noun-verb",       emoji:"🏷️",  color:P.purple, bg:P.purpleL},
+    {key:"singular-plural", emoji:"🔢",  color:P.teal,   bg:P.tealL},
+    {key:"word-meaning",    emoji:"💡",  color:P.orange, bg:P.orangeL},
+    {key:"grammar",         emoji:"📐",  color:P.indigo, bg:P.indigoL},
+  ];
+  return e("div",{className:"slide"},
+    e("div",{style:{display:"flex",alignItems:"center",gap:12,marginBottom:24}},
+      e("button",{onClick:onBack,style:{background:P.grayL,border:"none",borderRadius:12,padding:10}},I.back(20,P.gray)),
+      e("h2",{style:{...AF,fontSize:24,fontWeight:800,color:P.indigo,direction:"rtl",margin:0}},"🎯 التَّدْرِيبَات")
+    ),
+    e("div",{style:{display:"flex",flexDirection:"column",gap:14}},
+      ...drills.map(({key,emoji,color,bg})=>{
+        const stats=drillStats[key];
+        const mastery=stats?Math.round(stats.correct/stats.attempts*100):null;
+        const totalItems=(banks[key]?.items||[]).length;
+        return e("button",{key,onClick:()=>onStart(key),
+          style:{background:"#fff",border:`2px solid ${color}20`,borderRadius:18,padding:20,
+            cursor:"pointer",display:"flex",alignItems:"center",gap:16,
+            boxShadow:"0 4px 16px rgba(0,0,0,.06)",textAlign:"right"}},
+          e("div",{style:{width:56,height:56,borderRadius:14,background:bg,
+            display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}},emoji),
+          e("div",{style:{flex:1}},
+            e("p",{style:{...AF,fontSize:21,fontWeight:800,color,direction:"rtl",margin:"0 0 4px"}},
+              banks[key]?.titleAr||key),
+            mastery!==null
+              ? e("div",null,
+                  e("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:4}},
+                    e("span",{style:{fontSize:12,color:P.gray}},`${stats.attempts} questions`),
+                    e("span",{style:{fontSize:13,fontWeight:700,color:mastery>=80?P.green:mastery>=50?P.orange:P.red}},`${mastery}%`)
+                  ),
+                  e("div",{style:{background:"#e5e7eb",borderRadius:4,height:5}},
+                    e("div",{style:{background:mastery>=80?P.green:mastery>=50?P.orange:P.red,
+                      height:5,borderRadius:4,width:`${mastery}%`}}))
+                )
+              : e("p",{style:{fontSize:13,color:P.gray,margin:0}},`${totalItems} words · Not started yet`)
+          ),
+          e("span",{style:{fontSize:22,color}}, "›")
+        );
+      })
+    )
+  );
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function Dashboard({ lessons, banks, progress, onBack }) {
+  const lessonScores = progress?.lessons || {};
+  const drillStats   = progress?.drillStats || {};
+  const streak       = progress?.streak || 0;
+  const totalDone    = Object.keys(lessonScores).length;
+
+  return e("div",{className:"slide"},
+    e("div",{style:{display:"flex",alignItems:"center",gap:12,marginBottom:24}},
+      e("button",{onClick:onBack,style:{background:P.grayL,border:"none",borderRadius:12,padding:10}},I.back(20,P.gray)),
+      e("h2",{style:{...AF,fontSize:24,fontWeight:800,color:P.indigo,direction:"rtl",margin:0}},"📊 تَقَدُّمِي")
+    ),
+    // stats row
+    e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:20}},
+      e("div",{style:{background:"linear-gradient(135deg,#f97316,#eab308)",borderRadius:16,padding:16,textAlign:"center",color:"#fff"}},
+        e("p",{style:{fontSize:32,fontWeight:900,margin:0}},"🔥"+streak),
+        e("p",{style:{fontSize:11,margin:0,opacity:.9}})
+      ),
+      e("div",{style:{background:`linear-gradient(135deg,${P.indigo},${P.purple})`,borderRadius:16,padding:16,textAlign:"center",color:"#fff"}},
+        e("p",{style:{fontSize:32,fontWeight:900,margin:0}},totalDone),
+        e("p",{style:{fontSize:11,margin:0,opacity:.9}},"lessons done")
+      ),
+      e("div",{style:{background:"linear-gradient(135deg,#22c55e,#14b8a6)",borderRadius:16,padding:16,textAlign:"center",color:"#fff"}},
+        e("p",{style:{fontSize:32,fontWeight:900,margin:0}},lessons.length-totalDone),
+        e("p",{style:{fontSize:11,margin:0,opacity:.9}},"to go")
+      )
+    ),
+    // lessons
+    e("h3",{style:{...AF,fontSize:18,fontWeight:800,color:"#374151",direction:"rtl",marginBottom:12}},"الدُّرُوس"),
+    e("div",{style:{display:"flex",flexDirection:"column",gap:8,marginBottom:24}},
+      ...lessons.map(l=>{
+        const s=lessonScores[l.id];
+        const cat=CATEGORY[l.category]||CATEGORY.story;
+        return e("div",{key:l.id,style:{background:"#fff",borderRadius:14,padding:"14px 16px",
+          display:"flex",justifyContent:"space-between",alignItems:"center",
+          boxShadow:"0 2px 8px rgba(0,0,0,.05)"}},
+          e("div",{style:{display:"flex",alignItems:"center",gap:10}},
+            e("span",{style:{fontSize:22}},l.emoji||"📖"),
+            e("div",null,
+              e("p",{style:{...AF,fontSize:15,fontWeight:700,color:"#1f2937",direction:"rtl",margin:0}},l.title),
+              e("span",{style:{fontSize:11,background:cat.bg,color:cat.color,borderRadius:20,
+                padding:"2px 8px",fontWeight:700}},`W${l.week||1} · Lvl ${l.level}`)
+            )
+          ),
+          s?e(StarRow,{score:Math.round((s.quiz+s.grammar)/2)}):e("span",{style:{fontSize:12,color:P.gray}},"—")
+        );
+      })
+    ),
+    // drill stats
+    e("h3",{style:{...AF,fontSize:18,fontWeight:800,color:"#374151",direction:"rtl",marginBottom:12}},"التَّدْرِيبَات"),
+    e("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+      Object.keys(drillStats).length===0
+        ? e("p",{style:{color:P.gray,fontSize:14}},"No drill data yet.")
+        : Object.entries(drillStats).map(([key,stat])=>{
+            const pct=Math.round(stat.correct/stat.attempts*100);
+            const barColor=pct>=80?P.green:pct>=50?P.orange:P.red;
+            return e("div",{key,style:{background:"#fff",borderRadius:14,padding:14,
+              boxShadow:"0 2px 8px rgba(0,0,0,.05)"}},
+              e("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:8}},
+                e("span",{style:{...AF,fontSize:15,fontWeight:700,color:"#1f2937",direction:"rtl"}},
+                  banks[key]?.titleAr||key),
+                e("span",{style:{fontSize:14,fontWeight:800,color:barColor}},pct+"%")
+              ),
+              e("div",{style:{background:"#e5e7eb",borderRadius:4,height:7}},
+                e("div",{style:{background:barColor,height:7,borderRadius:4,width:`${pct}%`}})),
+              e("p",{style:{fontSize:12,color:P.gray,margin:"6px 0 0"}},`${stat.attempts} questions`)
+            );
+          })
+    )
+  );
+}
+
+// ── Print view ────────────────────────────────────────────────────────────────
+function PrintView({ lesson, onClose }) {
+  const today = new Date().toLocaleDateString("ar-EG",{year:"numeric",month:"long",day:"numeric"});
+  return e("div",{className:"print-worksheet",style:{fontFamily:"'Noto Naskh Arabic',serif",padding:28,maxWidth:720,margin:"0 auto",background:"#fff"}},
+    // Action buttons — hidden when printing
+    e("div",{id:"print-hide",style:{display:"flex",justifyContent:"space-between",marginBottom:20,gap:10}},
+      e("button",{onClick:onClose,style:{background:P.grayL,color:P.gray,border:"none",borderRadius:8,padding:"9px 18px",cursor:"pointer",fontWeight:700,display:"flex",alignItems:"center",gap:6}},
+        I.back(15,P.gray)," رُجُوع"),
+      e("button",{onClick:()=>window.print(),style:{background:`linear-gradient(135deg,${P.green},${P.greenD})`,color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",cursor:"pointer",fontWeight:700,fontSize:14,display:"flex",alignItems:"center",gap:6,boxShadow:"0 4px 14px rgba(34,197,94,.4)"}},
+        I.printer(15,"#fff")," 🖨️ طباعة PDF")
+    ),
+    // Worksheet header
+    e("div",{style:{borderBottom:"3px solid #1f2937",paddingBottom:12,marginBottom:18,display:"flex",justifyContent:"space-between",alignItems:"flex-end",direction:"rtl"}},
+      e("div",null,
+        e("h1",{style:{...AF,fontSize:26,fontWeight:700,direction:"rtl",margin:"0 0 2px"}},
+          (lesson.emoji||"📖")+" "+lesson.title),
+        e("p",{style:{...AF,fontSize:13,color:P.gray,direction:"rtl",margin:0}},
+          `الأُسْبُوع ${lesson.week||1} · المُسْتَوَى ${lesson.level}`)
+      ),
+      e("div",{style:{textAlign:"left",fontSize:12,color:P.gray}},
+        e("p",{style:{margin:"0 0 4px"}},"الاسم: _______________________"),
+        e("p",{style:{margin:0}},"التاريخ: "+today)
+      )
+    ),
+    // Passage
+    e("div",{style:{border:"1.5px solid #d1d5db",borderRadius:8,padding:"14px 18px",marginBottom:18,direction:"rtl"}},
+      e("h2",{style:{...AF,fontSize:15,fontWeight:700,color:P.indigoD,direction:"rtl",marginBottom:8,borderBottom:"1px solid #e5e7eb",paddingBottom:4}},"✦ النَّصّ"),
+      e("p",{style:{...AF,fontSize:20,direction:"rtl",lineHeight:2.5,margin:0}}, lesson.passage)
+    ),
+    // Vocabulary table
+    e("div",{style:{marginBottom:18}},
+      e("h2",{style:{...AF,fontSize:15,fontWeight:700,color:P.indigoD,direction:"rtl",marginBottom:8}},"✦ المُفْرَدَات"),
+      e("table",{style:{width:"100%",borderCollapse:"collapse"}},
+        e("thead",null,e("tr",{style:{background:"#f3f4f6"}},
+          e("th",{style:{...AF,padding:"7px 10px",border:"1px solid #d1d5db",direction:"rtl",textAlign:"right",fontSize:13}},"الكَلِمَة"),
+          e("th",{style:{...AF,padding:"7px 10px",border:"1px solid #d1d5db",direction:"rtl",textAlign:"right",fontSize:13}},"المَعْنَى بِالعَرَبِيَّة"),
+          e("th",{style:{padding:"7px 10px",border:"1px solid #d1d5db",textAlign:"left",fontSize:13}},"English"),
+          e("th",{style:{...AF,padding:"7px 10px",border:"1px solid #d1d5db",direction:"rtl",textAlign:"right",fontSize:13}},"الجَذْر"),
+          e("th",{style:{...AF,padding:"7px 10px",border:"1px solid #d1d5db",direction:"rtl",textAlign:"right",fontSize:13}},"بالعامية")
+        )),
+        e("tbody",null,...lesson.vocabulary.map(v=>
+          e("tr",{key:v.word},
+            e("td",{style:{...AF,padding:"8px 10px",border:"1px solid #d1d5db",fontSize:20,direction:"rtl",fontWeight:700}},v.word),
+            e("td",{style:{...AF,padding:"8px 10px",border:"1px solid #d1d5db",fontSize:13,direction:"rtl",lineHeight:1.6}},v.meaningAr),
+            e("td",{style:{padding:"8px 10px",border:"1px solid #d1d5db",fontSize:12}},v.meaningEn),
+            e("td",{style:{...AF,padding:"8px 10px",border:"1px solid #d1d5db",fontSize:14,direction:"rtl",color:P.indigo,fontWeight:700}},v.root||""),
+            e("td",{style:{...AF,padding:"8px 10px",border:"1px solid #d1d5db",fontSize:14,direction:"rtl",color:P.gray}},v.dialectEgy||"")
+          )
+        ))
+      )
+    ),
+    // Comprehension questions — blank answer lines for worksheet
+    e("div",{style:{marginBottom:18}},
+      e("h2",{style:{...AF,fontSize:15,fontWeight:700,color:P.indigoD,direction:"rtl",marginBottom:10}},"✦ أَسْئِلَةُ الفَهْم"),
+      ...lesson.comprehension.map((q,i)=>
+        e("div",{key:i,style:{marginBottom:16,direction:"rtl",pageBreakInside:"avoid"}},
+          e("p",{style:{...AF,fontSize:16,fontWeight:700,marginBottom:6}},`${i+1}. ${q.question}`),
+          e("div",{style:{display:"flex",flexWrap:"wrap",gap:"6px 18px",paddingRight:12}},
+            ...q.options.map((o,j)=>
+              e("label",{key:j,style:{...AF,fontSize:15,display:"flex",alignItems:"center",gap:6,cursor:"pointer"}},
+                e("span",{style:{width:16,height:16,border:"1.5px solid #374151",borderRadius:3,display:"inline-block",flexShrink:0}}),
+                o
+              )
+            )
+          )
+        )
+      )
+    ),
+    // Grammar section
+    lesson.grammar && lesson.grammar.length > 0 && e("div",{style:{marginBottom:18}},
+      e("h2",{style:{...AF,fontSize:15,fontWeight:700,color:P.indigoD,direction:"rtl",marginBottom:8}},"✦ تَمْرِينُ القَوَاعِد — اسم أم فعل؟"),
+      e("table",{style:{width:"100%",borderCollapse:"collapse"}},
+        e("thead",null,e("tr",{style:{background:"#f3f4f6"}},
+          e("th",{style:{...AF,padding:"7px 10px",border:"1px solid #d1d5db",direction:"rtl",textAlign:"right",fontSize:13}},"الكَلِمَة"),
+          e("th",{style:{...AF,padding:"7px 10px",border:"1px solid #d1d5db",direction:"rtl",textAlign:"center",fontSize:13}},"اسم / فعل"),
+          e("th",{style:{...AF,padding:"7px 10px",border:"1px solid #d1d5db",direction:"rtl",textAlign:"center",fontSize:13}},"مفرد / مثنى / جمع")
+        )),
+        e("tbody",null,...lesson.grammar.map(g=>
+          e("tr",{key:g.word},
+            e("td",{style:{...AF,padding:"9px 10px",border:"1px solid #d1d5db",fontSize:20,direction:"rtl",fontWeight:700}},g.word),
+            e("td",{style:{padding:"9px 10px",border:"1px solid #d1d5db",textAlign:"center"}},"□ اسم  □ فعل"),
+            e("td",{style:{...AF,padding:"9px 10px",border:"1px solid #d1d5db",textAlign:"center",fontSize:13}},
+              "□ مفرد  □ مثنى  □ جمع")
+          )
+        ))
+      )
+    ),
+    // Islamic connection
+    lesson.islamicLink && e("div",{style:{border:"1.5px solid #bbf7d0",borderRadius:8,padding:"12px 16px",direction:"rtl",background:"#f0fdf4"}},
+      e("h3",{style:{...AF,fontSize:14,fontWeight:700,color:P.greenD,direction:"rtl",marginBottom:4}},"🌙 الرَّابِطُ الإِسْلَامِي — "+lesson.islamicLink.theme),
+      e("p",{style:{...AF,fontSize:14,direction:"rtl",lineHeight:1.9,margin:"0 0 4px"}},lesson.islamicLink.note),
+      lesson.islamicLink.quranRef && e("p",{style:{...AF,fontSize:13,color:P.greenD,direction:"rtl",margin:0,fontWeight:700}},"📗 "+lesson.islamicLink.quranRef)
+    )
+  );
+}
+
+// ── HOME SCREEN ───────────────────────────────────────────────────────────────
+const STORY_THEMES = [
+  {key:"all",      label:"الكُلّ",    emoji:"🎯", color:P.indigo},
+  {key:"farm",     label:"مَزْرَعَة",  emoji:"🐄", color:"#84cc16"},
+  {key:"nature",   label:"طَبِيعَة",   emoji:"🌿", color:P.teal},
+  {key:"family",   label:"عَائِلَة",   emoji:"👨‍👩‍👧‍👦", color:P.orange},
+  {key:"school",   label:"مَدْرَسَة",  emoji:"🏫", color:P.sky},
+  {key:"seerah",   label:"سِيرَة",    emoji:"🌙", color:P.purple},
+  {key:"sport",    label:"رِيَاضَة",   emoji:"⚽", color:P.rose},
+  {key:"food",     label:"طَعَام",    emoji:"🍎", color:P.gold},
+  {key:"market",   label:"سُوق",     emoji:"🛒", color:"#f59e0b"},
+  {key:"season",   label:"فُصُول",    emoji:"🌸", color:"#ec4899"},
+];
+
+function HomeScreen({ lessons, banks, progress, contentLoaded, onLesson, onDrill, onDashboard, onPrint }) {
+  const [activeWeek, setActiveWeek] = useState("all");
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [activeStoryTheme, setActiveStoryTheme] = useState("all");
+  const lessonScores = progress?.lessons || {};
+  const streak       = progress?.streak || 0;
+  const weeks        = useMemo(()=>groupByWeek(lessons),[lessons]);
+  const weekNums     = Object.keys(weeks).map(Number).sort((a,b)=>a-b);
+
+  const filtered = useMemo(()=>{
+    let wl = activeWeek==="all" ? lessons : (weeks[activeWeek] || []);
+    if (activeFilter !== "all") wl = wl.filter(l=>l.category===activeFilter);
+    if (activeFilter === "story" && activeStoryTheme !== "all")
+      wl = wl.filter(l=>(l.storyTheme||"").includes(activeStoryTheme));
+    return wl;
+  },[weeks, activeWeek, activeFilter, activeStoryTheme, lessons]);
+
+  const totalItems = (banks["noun-verb"]?.items||[]).length
+                   + (banks["singular-plural"]?.items||[]).length
+                   + (banks["word-meaning"]?.items||[]).length;
+
+  return e("div",null,
+    // hero header
+    e("div",{style:{background:"linear-gradient(160deg,#4f46e5 0%,#7c3aed 50%,#a21caf 100%)",
+      borderRadius:24,padding:"28px 20px 24px",marginBottom:24,position:"relative",overflow:"hidden"}},
+      // decorative circles
+      e("div",{style:{position:"absolute",top:-30,right:-30,width:120,height:120,
+        borderRadius:"50%",background:"rgba(255,255,255,.07)"}}),
+      e("div",{style:{position:"absolute",bottom:-20,left:-20,width:90,height:90,
+        borderRadius:"50%",background:"rgba(255,255,255,.05)"}}),
+      e("div",{style:{position:"relative"}},
+        e("div",{style:{fontSize:52,marginBottom:6,textAlign:"center"}},"📖"),
+        e("h1",{style:{...AF,fontSize:28,fontWeight:900,color:"#fff",margin:"0 0 4px",
+          direction:"rtl",textAlign:"center",letterSpacing:.5}},"تَعَلَّمْ العَرَبِيَّة"),
+        e("p",{style:{fontSize:14,color:"rgba(255,255,255,.85)",margin:"0 0 14px",textAlign:"center"}},"Arabic Reading & Understanding"),
+        // stats row
+        e("div",{style:{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}},
+          streak>0 && e("div",{style:{background:"rgba(255,255,255,.2)",borderRadius:20,
+            padding:"5px 14px",display:"inline-flex",alignItems:"center",gap:6}},
+            e("span",{style:{fontSize:18}},"🔥"),
+            e("span",{style:{fontWeight:800,fontSize:15,color:"#fff"}},`${streak} day streak`)
+          ),
+          e("div",{style:{background:"rgba(255,255,255,.2)",borderRadius:20,padding:"5px 14px",
+            display:"inline-flex",alignItems:"center",gap:6}},
+            e("span",{style:{fontSize:14,color:"#fff",fontWeight:700}},`${lessons.length} lessons`)),
+          contentLoaded && e("div",{style:{background:"rgba(34,197,94,.3)",borderRadius:20,
+            padding:"5px 14px",display:"inline-flex",alignItems:"center",gap:6}},
+            e("span",{style:{fontSize:12,color:"#fff",fontWeight:700}},"✓ Full curriculum loaded"))
+        )
+      )
+    ),
+
+    // week tabs
+    weekNums.length > 1 && e("div",null,
+      e("div",{style:{display:"flex",gap:8,overflowX:"auto",paddingBottom:4,marginBottom:16,
+        WebkitOverflowScrolling:"touch"}},
+        e("button",{key:"all",onClick:()=>setActiveWeek("all"),
+          style:{flexShrink:0,background:activeWeek==="all"
+            ?`linear-gradient(135deg,${P.indigo},${P.purple})`:"#fff",
+            color:activeWeek==="all"?"#fff":P.gray,border:activeWeek==="all"?"none":"2px solid #e5e7eb",
+            borderRadius:12,padding:"8px 18px",fontSize:14,fontWeight:800,
+            boxShadow:activeWeek==="all"?"0 4px 14px rgba(99,102,241,.35)":"none"}},"الكُلّ"),
+        ...weekNums.map(w=>
+          e("button",{key:w,onClick:()=>setActiveWeek(w),
+            style:{flexShrink:0,background:w===activeWeek
+              ?`linear-gradient(135deg,${P.indigo},${P.purple})`:"#fff",
+              color:w===activeWeek?"#fff":P.gray,border:w===activeWeek?"none":"2px solid #e5e7eb",
+              borderRadius:12,padding:"8px 18px",fontSize:14,fontWeight:800,
+              boxShadow:w===activeWeek?"0 4px 14px rgba(99,102,241,.35)":"none"}},
+            `${w}`)
+        )
+      )
+    ),
+
+    // category filter chips
+    e("div",{style:{display:"flex",gap:8,marginBottom:activeFilter==="story"?10:18,direction:"rtl",flexWrap:"wrap"}},
+      ...[["all","الكُلّ","🎯",P.indigo],
+          ["story","قِصَّة","📖",P.indigo],
+          ["islamic","إِسْلَامِيَّات","🌙",P.teal],
+          ["quran","قُرْآن","📗",P.green]].map(([cat,label,em,col])=>
+        e("button",{key:cat,onClick:()=>{setActiveFilter(cat);setActiveStoryTheme("all");},
+          style:{...AF,background:cat===activeFilter?col:"#fff",
+            color:cat===activeFilter?"#fff":P.gray,
+            border:cat===activeFilter?"none":`1.5px solid #e5e7eb`,
+            borderRadius:20,padding:"6px 14px",fontSize:14,fontWeight:700,
+            boxShadow:cat===activeFilter?"0 3px 10px rgba(0,0,0,.15)":"none"}},
+          em+" "+label)
+      )
+    ),
+
+    // story theme sub-filter (only when Stories tab active)
+    activeFilter==="story" && e("div",{style:{marginBottom:16}},
+      e("div",{style:{display:"flex",gap:7,overflowX:"auto",paddingBottom:6,WebkitOverflowScrolling:"touch",direction:"ltr"}},
+        ...STORY_THEMES
+          .filter(t=> t.key==="all" || lessons.some(l=>l.category==="story"&&(l.storyTheme||"").includes(t.key)))
+          .map(({key,label,emoji,color})=>
+            e("button",{key,onClick:()=>setActiveStoryTheme(key),
+              style:{flexShrink:0,...AF,
+                background:key===activeStoryTheme?color:"#fff",
+                color:key===activeStoryTheme?"#fff":P.gray,
+                border:key===activeStoryTheme?"none":`1.5px solid #e5e7eb`,
+                borderRadius:20,padding:"5px 13px",fontSize:13,fontWeight:700,
+                boxShadow:key===activeStoryTheme?"0 3px 10px rgba(0,0,0,.18)":"none",
+                whiteSpace:"nowrap"}},
+              emoji+" "+label)
+          )
+      )
+    ),
+
+    // lesson cards
+    filtered.length===0
+      ? e("div",{style:{textAlign:"center",padding:"40px 0",color:P.gray}},
+          e("div",{style:{fontSize:48,marginBottom:12}},"📭"),
+          e("p",{style:{...AF,fontSize:16,direction:"rtl"}},"لا توجد دروس في هذا التصنيف"))
+      : e("div",{style:{display:"flex",flexDirection:"column",gap:14,marginBottom:28}},
+          ...filtered.map(l=>{
+            const done=lessonScores[l.id];
+            const avg=done?Math.round((done.quiz+done.grammar)/2):null;
+            const cat=CATEGORY[l.category]||CATEGORY.story;
+            const levelBg=["","#dcfce7","#ffedd5","#f3e8ff"][l.level]||P.grayL;
+            const levelCol=["",P.green,P.orange,P.purple][l.level]||P.gray;
+            return e("button",{key:l.id,onClick:()=>onLesson(l.id),
+              style:{background:"#fff",border:`2px solid ${done?cat.color+"30":"#e5e7eb"}`,
+                borderRadius:20,padding:18,cursor:"pointer",textAlign:"right",
+                display:"flex",alignItems:"center",gap:14,
+                boxShadow:done?"0 4px 20px rgba(99,102,241,.1)":"0 2px 10px rgba(0,0,0,.05)",
+                borderLeft:`4px solid ${cat.color}`}},
+              e("div",{style:{width:52,height:52,borderRadius:14,background:cat.bg,
+                display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}},
+                l.emoji||cat.emoji),
+              e("div",{style:{flex:1,minWidth:0}},
+                e("div",{style:{display:"flex",alignItems:"center",gap:6,direction:"rtl",marginBottom:5,flexWrap:"wrap"}},
+                  e("span",{style:{...AF,fontSize:18,fontWeight:800,color:"#1f2937"}},l.title),
+                  e("span",{style:{fontSize:11,background:levelBg,color:levelCol,
+                    borderRadius:20,padding:"2px 8px",fontWeight:700,flexShrink:0}},`مستوى ${l.level}`)
+                ),
+                e("div",{style:{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}},
+                  e("span",{style:{fontSize:11,background:cat.bg,color:cat.color,
+                    borderRadius:20,padding:"2px 8px",fontWeight:700}},cat.emoji+" "+cat.label),
+                  l.storyTheme && e("span",{style:{fontSize:10,background:"#f3f4f6",color:P.gray,
+                    borderRadius:20,padding:"2px 7px",fontWeight:600}},
+                    (STORY_THEMES.find(t=>t.key===l.storyTheme)||{emoji:"",label:l.storyTheme}).emoji+" "+(STORY_THEMES.find(t=>t.key===l.storyTheme)||{label:l.storyTheme}).label),
+                  done ? e(StarRow,{score:avg}) : e("span",{style:{fontSize:12,color:P.gray}},"لم يُبدَأ بعد")
+                )
+              ),
+              e("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flexShrink:0}},
+                done ? I.check(22,P.green) : I.next(20,P.gray),
+                onPrint && e("button",{
+                  onClick:ev=>{ev.stopPropagation();onPrint(l.id);},
+                  title:"Print worksheet",
+                  style:{background:P.grayL,border:"none",borderRadius:8,padding:"4px 6px",
+                    display:"flex",alignItems:"center",cursor:"pointer"}},
+                  I.printer(14,P.gray))
+              )
+            );
+          })
+        ),
+
+    // drill + dashboard row
+    e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:24}},
+      e("button",{onClick:onDrill,
+        style:{background:"#fff",border:`2px solid ${P.purple}20`,borderRadius:18,padding:18,
+          cursor:"pointer",textAlign:"center",boxShadow:"0 4px 16px rgba(168,85,247,.1)"}},
+        e("div",{style:{fontSize:32,marginBottom:6}},I.zap(32,P.purple)),
+        e("p",{style:{...AF,fontSize:16,fontWeight:800,color:P.purple,direction:"rtl",margin:"0 0 2px"}},"التَّدْرِيب"),
+        e("p",{style:{fontSize:11,color:P.gray,margin:0}},`${totalItems} words`)
+      ),
+      e("button",{onClick:onDashboard,
+        style:{background:"#fff",border:`2px solid ${P.gold}30`,borderRadius:18,padding:18,
+          cursor:"pointer",textAlign:"center",boxShadow:"0 4px 16px rgba(234,179,8,.1)"}},
+        e("div",{style:{fontSize:32,marginBottom:6}},I.trend(32,P.gold)),
+        e("p",{style:{...AF,fontSize:16,fontWeight:800,color:"#92400e",direction:"rtl",margin:"0 0 2px"}},"تَقَدُّمِي"),
+        e("p",{style:{fontSize:11,color:P.gray,margin:0}},`${Object.keys(lessonScores).length}/${lessons.length} done`)
+      )
+    ),
+
+    // generate content tip
+    !contentLoaded && e("div",{style:{background:"linear-gradient(135deg,#fef9c3,#fef3c7)",
+      borderRadius:16,padding:16,border:"1.5px solid #fbbf24"}},
+      e("p",{style:{fontSize:13,color:"#92400e",fontWeight:700,marginBottom:4}},"💡 Want 20 lessons across 5 weeks?"),
+      e("p",{style:{fontSize:12,color:"#78350f",margin:0,lineHeight:1.6}},
+        "Run: ",e("code",{style:{background:"#fef9c3",padding:"1px 4px",borderRadius:4,fontFamily:"monospace"}},
+          "ANTHROPIC_API_KEY=sk-... python3 generate_content.py"),
+        " — then reload this page.")
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ISLAMIC STUDIES MODULE
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Islamic colour palette ────────────────────────────────────────────────────
+const IP = {
+  green:"#0d7c3d", greenL:"#e6f4ec", greenD:"#095c2c",
+  gold:"#c9a227",  goldL:"#fdf6e3",
+  teal:"#0e7490",  tealL:"#cffafe",
+  navy:"#1e3a5f",  navyL:"#dbeafe",
+  purple:"#7c3aed",purpleL:"#ede9fe",
+  rose:"#be123c",  roseL:"#ffe4e6",
+};
+
+// ── 99 Names of Allah ─────────────────────────────────────────────────────────
+const NAMES_99 = [
+  {num:1, arabic:"اللَّهُ",       latin:"Allah",       meaning:"The One God"},
+  {num:2, arabic:"الرَّحْمٰنُ",   latin:"Ar-Rahman",   meaning:"The Most Gracious"},
+  {num:3, arabic:"الرَّحِيمُ",    latin:"Ar-Rahim",    meaning:"The Most Merciful"},
+  {num:4, arabic:"الْمَلِكُ",     latin:"Al-Malik",    meaning:"The King"},
+  {num:5, arabic:"الْقُدُّوسُ",   latin:"Al-Quddus",   meaning:"The Most Holy"},
+  {num:6, arabic:"السَّلَامُ",    latin:"As-Salam",    meaning:"The Source of Peace"},
+  {num:7, arabic:"الْمُؤْمِنُ",   latin:"Al-Mu'min",   meaning:"The Guardian of Faith"},
+  {num:8, arabic:"الْمُهَيْمِنُ", latin:"Al-Muhaymin", meaning:"The Protector"},
+  {num:9, arabic:"الْعَزِيزُ",    latin:"Al-'Aziz",    meaning:"The Almighty"},
+  {num:10,arabic:"الْجَبَّارُ",   latin:"Al-Jabbar",   meaning:"The Compeller"},
+  {num:11,arabic:"الْمُتَكَبِّرُ",latin:"Al-Mutakabbir",meaning:"The Majestic"},
+  {num:12,arabic:"الْخَالِقُ",    latin:"Al-Khaliq",   meaning:"The Creator"},
+  {num:13,arabic:"الْبَارِئُ",    latin:"Al-Bari'",    meaning:"The Evolver"},
+  {num:14,arabic:"الْمُصَوِّرُ",  latin:"Al-Musawwir", meaning:"The Fashioner"},
+  {num:15,arabic:"الْغَفَّارُ",   latin:"Al-Ghaffar",  meaning:"The Repeatedly Forgiving"},
+  {num:16,arabic:"الْقَهَّارُ",   latin:"Al-Qahhar",   meaning:"The Subduer"},
+  {num:17,arabic:"الْوَهَّابُ",   latin:"Al-Wahhab",   meaning:"The Bestower"},
+  {num:18,arabic:"الرَّزَّاقُ",   latin:"Ar-Razzaq",   meaning:"The Provider"},
+  {num:19,arabic:"الْفَتَّاحُ",   latin:"Al-Fattah",   meaning:"The Opener"},
+  {num:20,arabic:"الْعَلِيمُ",    latin:"Al-'Alim",    meaning:"The All-Knowing"},
+  {num:21,arabic:"الْقَابِضُ",    latin:"Al-Qabid",    meaning:"The Withholder"},
+  {num:22,arabic:"الْبَاسِطُ",    latin:"Al-Basit",    meaning:"The Expander"},
+  {num:23,arabic:"الْخَافِضُ",    latin:"Al-Khafid",   meaning:"The Abaser"},
+  {num:24,arabic:"الرَّافِعُ",    latin:"Ar-Rafi'",    meaning:"The Exalter"},
+  {num:25,arabic:"الْمُعِزُّ",    latin:"Al-Mu'izz",   meaning:"The Honourer"},
+  {num:26,arabic:"الْمُذِلُّ",    latin:"Al-Mudhill",  meaning:"The Humiliator"},
+  {num:27,arabic:"السَّمِيعُ",    latin:"As-Sami'",    meaning:"The All-Hearing"},
+  {num:28,arabic:"الْبَصِيرُ",    latin:"Al-Basir",    meaning:"The All-Seeing"},
+  {num:29,arabic:"الْحَكَمُ",     latin:"Al-Hakam",    meaning:"The Judge"},
+  {num:30,arabic:"الْعَدْلُ",     latin:"Al-'Adl",     meaning:"The Just"},
+  {num:31,arabic:"اللَّطِيفُ",    latin:"Al-Latif",    meaning:"The Subtle One"},
+  {num:32,arabic:"الْخَبِيرُ",    latin:"Al-Khabir",   meaning:"The All-Aware"},
+  {num:33,arabic:"الْحَلِيمُ",    latin:"Al-Halim",    meaning:"The Forbearing"},
+  {num:34,arabic:"الْعَظِيمُ",    latin:"Al-'Azim",    meaning:"The Magnificent"},
+  {num:35,arabic:"الْغَفُورُ",    latin:"Al-Ghafur",   meaning:"The All-Forgiving"},
+  {num:36,arabic:"الشَّكُورُ",    latin:"Ash-Shakur",  meaning:"The Appreciative"},
+  {num:37,arabic:"الْعَلِيُّ",    latin:"Al-'Ali",     meaning:"The Most High"},
+  {num:38,arabic:"الْكَبِيرُ",    latin:"Al-Kabir",    meaning:"The Greatest"},
+  {num:39,arabic:"الْحَفِيظُ",    latin:"Al-Hafiz",    meaning:"The Preserver"},
+  {num:40,arabic:"الْمُقِيتُ",    latin:"Al-Muqit",    meaning:"The Nourisher"},
+  {num:41,arabic:"الْحَسِيبُ",    latin:"Al-Hasib",    meaning:"The Reckoner"},
+  {num:42,arabic:"الْجَلِيلُ",    latin:"Al-Jalil",    meaning:"The Majestic"},
+  {num:43,arabic:"الْكَرِيمُ",    latin:"Al-Karim",    meaning:"The Most Generous"},
+  {num:44,arabic:"الرَّقِيبُ",    latin:"Ar-Raqib",    meaning:"The Watchful"},
+  {num:45,arabic:"الْمُجِيبُ",    latin:"Al-Mujib",    meaning:"The Responsive"},
+  {num:46,arabic:"الْوَاسِعُ",    latin:"Al-Wasi'",    meaning:"The All-Encompassing"},
+  {num:47,arabic:"الْحَكِيمُ",    latin:"Al-Hakim",    meaning:"The Perfectly Wise"},
+  {num:48,arabic:"الْوَدُودُ",    latin:"Al-Wadud",    meaning:"The Most Loving"},
+  {num:49,arabic:"الْمَجِيدُ",    latin:"Al-Majid",    meaning:"The Most Glorious"},
+  {num:50,arabic:"الْبَاعِثُ",    latin:"Al-Ba'ith",   meaning:"The Resurrector"},
+  {num:51,arabic:"الشَّهِيدُ",    latin:"Ash-Shahid",  meaning:"The Witness"},
+  {num:52,arabic:"الْحَقُّ",      latin:"Al-Haqq",     meaning:"The Truth"},
+  {num:53,arabic:"الْوَكِيلُ",    latin:"Al-Wakil",    meaning:"The Trustee"},
+  {num:54,arabic:"الْقَوِيُّ",    latin:"Al-Qawiyy",   meaning:"The Most Strong"},
+  {num:55,arabic:"الْمَتِينُ",    latin:"Al-Matin",    meaning:"The Firm"},
+  {num:56,arabic:"الْوَلِيُّ",    latin:"Al-Waliyy",   meaning:"The Protecting Friend"},
+  {num:57,arabic:"الْحَمِيدُ",    latin:"Al-Hamid",    meaning:"The All-Praiseworthy"},
+  {num:58,arabic:"الْمُحْصِي",    latin:"Al-Muhsi",    meaning:"The Counter"},
+  {num:59,arabic:"الْمُبْدِئُ",   latin:"Al-Mubdi'",   meaning:"The Originator"},
+  {num:60,arabic:"الْمُعِيدُ",    latin:"Al-Mu'id",    meaning:"The Restorer"},
+  {num:61,arabic:"الْمُحْيِي",    latin:"Al-Muhyi",    meaning:"The Giver of Life"},
+  {num:62,arabic:"الْمُمِيتُ",    latin:"Al-Mumit",    meaning:"The Taker of Life"},
+  {num:63,arabic:"الْحَيُّ",      latin:"Al-Hayy",     meaning:"The Ever-Living"},
+  {num:64,arabic:"الْقَيُّومُ",   latin:"Al-Qayyum",   meaning:"The Self-Subsisting"},
+  {num:65,arabic:"الْوَاجِدُ",    latin:"Al-Wajid",    meaning:"The Finder"},
+  {num:66,arabic:"الْمَاجِدُ",    latin:"Al-Majid",    meaning:"The Noble"},
+  {num:67,arabic:"الْوَاحِدُ",    latin:"Al-Wahid",    meaning:"The One"},
+  {num:68,arabic:"الْأَحَدُ",     latin:"Al-Ahad",     meaning:"The Unique"},
+  {num:69,arabic:"الصَّمَدُ",     latin:"As-Samad",    meaning:"The Eternal"},
+  {num:70,arabic:"الْقَادِرُ",    latin:"Al-Qadir",    meaning:"The Capable"},
+  {num:71,arabic:"الْمُقْتَدِرُ", latin:"Al-Muqtadir", meaning:"The Powerful"},
+  {num:72,arabic:"الْمُقَدِّمُ",  latin:"Al-Muqaddim", meaning:"The Expediter"},
+  {num:73,arabic:"الْمُؤَخِّرُ",  latin:"Al-Mu'akhkhir",meaning:"The Delayer"},
+  {num:74,arabic:"الْأَوَّلُ",    latin:"Al-Awwal",    meaning:"The First"},
+  {num:75,arabic:"الْآخِرُ",      latin:"Al-Akhir",    meaning:"The Last"},
+  {num:76,arabic:"الظَّاهِرُ",    latin:"Az-Zahir",    meaning:"The Manifest"},
+  {num:77,arabic:"الْبَاطِنُ",    latin:"Al-Batin",    meaning:"The Hidden"},
+  {num:78,arabic:"الْوَالِي",     latin:"Al-Wali",     meaning:"The Governing"},
+  {num:79,arabic:"الْمُتَعَالِي", latin:"Al-Muta'ali", meaning:"The Most Exalted"},
+  {num:80,arabic:"الْبَرُّ",      latin:"Al-Barr",     meaning:"The Source of Goodness"},
+  {num:81,arabic:"التَّوَّابُ",   latin:"At-Tawwab",   meaning:"The Ever-Returning"},
+  {num:82,arabic:"الْمُنْتَقِمُ", latin:"Al-Muntaqim", meaning:"The Avenger"},
+  {num:83,arabic:"الْعَفُوُّ",    latin:"Al-'Afuww",   meaning:"The Pardoner"},
+  {num:84,arabic:"الرَّؤُوفُ",    latin:"Ar-Ra'uf",    meaning:"The Most Kind"},
+  {num:85,arabic:"مَالِكُ الْمُلْكِ",latin:"Malik Al-Mulk",meaning:"Owner of All Sovereignty"},
+  {num:86,arabic:"ذُو الْجَلَالِ",latin:"Dhul-Jalal",  meaning:"Lord of Majesty and Bounty"},
+  {num:87,arabic:"الْمُقْسِطُ",   latin:"Al-Muqsit",   meaning:"The Equitable"},
+  {num:88,arabic:"الْجَامِعُ",    latin:"Al-Jami'",    meaning:"The Gatherer"},
+  {num:89,arabic:"الْغَنِيُّ",    latin:"Al-Ghani",    meaning:"The Self-Sufficient"},
+  {num:90,arabic:"الْمُغْنِي",    latin:"Al-Mughni",   meaning:"The Enricher"},
+  {num:91,arabic:"الْمَانِعُ",    latin:"Al-Mani'",    meaning:"The Preventer"},
+  {num:92,arabic:"الضَّارُّ",     latin:"Ad-Darr",     meaning:"The Distresser"},
+  {num:93,arabic:"النَّافِعُ",    latin:"An-Nafi'",    meaning:"The Propitious"},
+  {num:94,arabic:"النُّورُ",      latin:"An-Nur",      meaning:"The Light"},
+  {num:95,arabic:"الْهَادِي",     latin:"Al-Hadi",     meaning:"The Guide"},
+  {num:96,arabic:"الْبَدِيعُ",    latin:"Al-Badi'",    meaning:"The Incomparable Originator"},
+  {num:97,arabic:"الْبَاقِي",     latin:"Al-Baqi",     meaning:"The Everlasting"},
+  {num:98,arabic:"الْوَارِثُ",    latin:"Al-Warith",   meaning:"The Inheritor"},
+  {num:99,arabic:"الرَّشِيدُ",    latin:"Ar-Rashid",   meaning:"The Guide to the Right Path"},
+];
+
+// ── Hisnul Muslim Duas ────────────────────────────────────────────────────────
+const DUAS = [
+  {
+    category:"صَبَاح (Morning)",
+    items:[
+      {title:"أَذْكَارُ الصَّبَاح",arabic:"أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ",latin:"Asbahna wa asbahal mulku lillah, walhamdu lillah, la ilaha illallahu wahdahu la sharika lah",meaning:"We have entered the morning and the kingdom belongs to Allah. Praise be to Allah. None has the right to be worshipped but Allah alone."},
+      {title:"دُعَاءُ الصَّبَاح",arabic:"اللَّهُمَّ بِكَ أَصْبَحْنَا، وَبِكَ أَمْسَيْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ النُّشُور",latin:"Allahumma bika asbahna wa bika amsayna wa bika nahya wa bika namutu wa ilaykan-nushur",meaning:"O Allah, by You we enter the morning and by You we enter the evening, by You we live and by You we die, and to You is the resurrection."},
+      {title:"طَلَبُ الحِفْظ",arabic:"اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا",latin:"Allahumma inni as'aluka 'ilman nafi'an wa rizqan tayyiban wa 'amalan mutaqabbala",meaning:"O Allah, I ask You for beneficial knowledge, good provision, and accepted deeds."},
+    ]
+  },
+  {
+    category:"مَسَاء (Evening)",
+    items:[
+      {title:"أَذْكَارُ المَسَاء",arabic:"أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ",latin:"Amsayna wa amsal mulku lillah, walhamdu lillah, la ilaha illallahu wahdahu la sharika lah",meaning:"We have entered the evening and the kingdom belongs to Allah. Praise be to Allah. None has the right to be worshipped but Allah alone."},
+      {title:"آيَةُ الكُرْسِي",arabic:"اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ",latin:"Allahu la ilaha illa huwal-Hayyul-Qayyum, la ta'khudhuhu sinatun wa la nawm",meaning:"Allah — there is no deity except Him, the Ever-Living, the Sustainer of existence. Neither drowsiness overtakes Him nor sleep."},
+    ]
+  },
+  {
+    category:"قَبْلَ النَّوْم (Before Sleep)",
+    items:[
+      {title:"دُعَاءُ النَّوْم",arabic:"بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا",latin:"Bismika Allahumma amutu wa ahya",meaning:"In Your name, O Allah, I die and I live."},
+      {title:"التَّسْبِيحُ قَبْلَ النَّوْم",arabic:"سُبْحَانَ اللهِ (٣٣)، اَلْحَمْدُ لِلَّهِ (٣٣)، اَللهُ أَكْبَرُ (٣٤)",latin:"SubhanAllah (33x), Alhamdulillah (33x), Allahu Akbar (34x)",meaning:"Glory be to Allah (33), Praise be to Allah (33), Allah is the Greatest (34). Recite before sleeping."},
+    ]
+  },
+  {
+    category:"يَوْمِيَّات (Daily Duas)",
+    items:[
+      {title:"دُعَاءُ الأَكْل",arabic:"بِسْمِ اللهِ وَعَلَى بَرَكَةِ اللهِ",latin:"Bismillahi wa 'ala barakatillah",meaning:"In the name of Allah and with the blessings of Allah."},
+      {title:"دُعَاءُ الخُرُوج",arabic:"بِسْمِ اللهِ، تَوَكَّلْتُ عَلَى اللهِ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللهِ",latin:"Bismillah, tawakkaltu 'alallah, wa la hawla wa la quwwata illa billah",meaning:"In the name of Allah, I place my trust in Allah, and there is no power or strength except with Allah."},
+      {title:"دُعَاءُ السَّفَر",arabic:"سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَٰذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ وَإِنَّا إِلَىٰ رَبِّنَا لَمُنقَلِبُونَ",latin:"Subhanal-ladhi sakhkhara lana hadha wa ma kunna lahu muqrinin wa inna ila Rabbina lamunqalibun",meaning:"Glory be to the One Who has subjected this to us and we could not have done it ourselves, and verily to our Lord we shall return."},
+      {title:"دُعَاءُ الكَرْب",arabic:"لَا إِلٰهَ إِلَّا اللهُ الْعَظِيمُ الْحَلِيمُ، لَا إِلٰهَ إِلَّا اللهُ رَبُّ الْعَرْشِ الْعَظِيم",latin:"La ilaha illallahul-'Azimul-Halim, la ilaha illallahu Rabbul-'Arshil-'Azim",meaning:"None has the right to be worshipped but Allah, the Magnificent, the Forbearing. None has the right to be worshipped but Allah, Lord of the Magnificent Throne."},
+    ]
+  },
+];
+
+// ── Surahs data ───────────────────────────────────────────────────────────────
+const SURAHS = [
+  {
+    num:1, name:"الفَاتِحَة", nameEn:"Al-Fatiha", ayahs:7,
+    verses:[
+      {ar:"بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",          tr:"Bismillahir rahmanir raheem",              en:"In the name of Allah, the Most Gracious, the Most Merciful"},
+      {ar:"الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",           tr:"Alhamdu lillahi Rabbil 'aalameen",         en:"All praise is due to Allah, Lord of all the worlds"},
+      {ar:"الرَّحْمَٰنِ الرَّحِيمِ",                          tr:"Ar-Rahmanir-Raheem",                       en:"The Most Gracious, the Most Merciful"},
+      {ar:"مَالِكِ يَوْمِ الدِّينِ",                          tr:"Maliki Yawmid-Deen",                       en:"Master of the Day of Judgment"},
+      {ar:"إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",        tr:"Iyyaka na'budu wa iyyaka nasta'een",       en:"You alone we worship and You alone we ask for help"},
+      {ar:"اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ",              tr:"Ihdinas-Siratal-Mustaqeem",                en:"Guide us to the straight path"},
+      {ar:"صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ",tr:"Siratal-ladhina an'amta 'alayhim ghayril-maghdubi 'alayhim wa lad-daalleen",en:"The path of those upon whom You have bestowed favour, not of those who have evoked anger or of those who are astray"},
+    ]
+  },
+  {
+    num:112, name:"الإِخْلَاص", nameEn:"Al-Ikhlas", ayahs:4,
+    verses:[
+      {ar:"قُلْ هُوَ اللَّهُ أَحَدٌ",           tr:"Qul huwa Allahu ahad",          en:"Say: He is Allah, [Who is] One"},
+      {ar:"اللَّهُ الصَّمَدُ",                   tr:"Allahus-samad",                  en:"Allah, the Eternal Refuge"},
+      {ar:"لَمْ يَلِدْ وَلَمْ يُولَدْ",          tr:"Lam yalid wa lam yoolad",        en:"He neither begets nor is born"},
+      {ar:"وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ",  tr:"Wa lam yakun lahu kufuwan ahad", en:"Nor is there to Him any equivalent"},
+    ]
+  },
+  {
+    num:113, name:"الفَلَق", nameEn:"Al-Falaq", ayahs:5,
+    verses:[
+      {ar:"قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ",                        tr:"Qul a'udhu bi Rabbil-falaq",                           en:"Say: I seek refuge in the Lord of daybreak"},
+      {ar:"مِن شَرِّ مَا خَلَقَ",                                   tr:"Min sharri ma khalaq",                                 en:"From the evil of that which He created"},
+      {ar:"وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ",                      tr:"Wa min sharri ghasiqin idha waqab",                    en:"And from the evil of darkness when it settles"},
+      {ar:"وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ",              tr:"Wa min sharrin-naffathati fil 'uqad",                  en:"And from the evil of the blowers in knots"},
+      {ar:"وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ",                     tr:"Wa min sharri hasidin idha hasad",                     en:"And from the evil of an envier when he envies"},
+    ]
+  },
+  {
+    num:114, name:"النَّاس", nameEn:"An-Nas", ayahs:6,
+    verses:[
+      {ar:"قُلْ أَعُوذُ بِرَبِّ النَّاسِ",         tr:"Qul a'udhu bi Rabbin-nas",         en:"Say: I seek refuge in the Lord of mankind"},
+      {ar:"مَلِكِ النَّاسِ",                         tr:"Malikin-nas",                       en:"The Sovereign of mankind"},
+      {ar:"إِلَٰهِ النَّاسِ",                        tr:"Ilahin-nas",                        en:"The God of mankind"},
+      {ar:"مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ",    tr:"Min sharril-waswasil-khannas",      en:"From the evil of the retreating whisperer"},
+      {ar:"الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ",tr:"Alladhi yuwaswisu fi sudurin-nas",  en:"Who whispers [evil] into the breasts of mankind"},
+      {ar:"مِنَ الْجِنَّةِ وَالنَّاسِ",            tr:"Minal-jinnati wan-nas",              en:"From among the jinn and mankind"},
+    ]
+  },
+  {
+    num:108, name:"الكَوْثَر", nameEn:"Al-Kawthar", ayahs:3,
+    verses:[
+      {ar:"إِنَّا أَعْطَيْنَاكَ الْكَوْثَرَ",           tr:"Inna a'taynaka al-kawthar",          en:"Indeed, We have granted you Al-Kawthar"},
+      {ar:"فَصَلِّ لِرَبِّكَ وَانْحَرْ",                tr:"Fasalli li Rabbika wanhar",           en:"So pray to your Lord and sacrifice"},
+      {ar:"إِنَّ شَانِئَكَ هُوَ الْأَبْتَرُ",          tr:"Inna sha'ni'aka huwal-abtar",         en:"Indeed, your enemy is the one cut off"},
+    ]
+  },
+  {
+    num:110, name:"النَّصْر", nameEn:"An-Nasr", ayahs:3,
+    verses:[
+      {ar:"إِذَا جَاءَ نَصْرُ اللَّهِ وَالْفَتْحُ",                   tr:"Idha ja'a nasrullahi wal-fath",                    en:"When the victory of Allah has come and the conquest"},
+      {ar:"وَرَأَيْتَ النَّاسَ يَدْخُلُونَ فِي دِينِ اللَّهِ أَفْوَاجًا",tr:"Wa ra'aytan-nasa yadkhuluna fi dinil-lahi afwaja",  en:"And you see the people entering into the religion of Allah in multitudes"},
+      {ar:"فَسَبِّحْ بِحَمْدِ رَبِّكَ وَاسْتَغْفِرْهُ إِنَّهُ كَانَ تَوَّابًا",tr:"Fasabbih bihamdi Rabbika wastaghfirh, innahu kana tawwaba",en:"Then exalt [Him] with praise of your Lord and ask forgiveness of Him. Indeed, He is ever Accepting of repentance"},
+    ]
+  },
+];
+
+// ── Islamic Dictionary ────────────────────────────────────────────────────────
+const ISLAMIC_DICT = [
+  {arabic:"اللَّه",         latin:"Allah",          english:"The One God; the proper name of the Creator"},
+  {arabic:"إِسْلَام",       latin:"Islam",           english:"Submission to God; the religion revealed to Prophet Muhammad ﷺ"},
+  {arabic:"إِيمَان",        latin:"Iman",            english:"Faith; belief in Allah, angels, books, prophets, Day of Judgment, and divine decree"},
+  {arabic:"إِحْسَان",       latin:"Ihsan",           english:"Excellence; worshipping Allah as if you see Him"},
+  {arabic:"تَوْحِيد",       latin:"Tawhid",          english:"Monotheism; belief in the oneness of Allah"},
+  {arabic:"نَبِيّ",         latin:"Nabi",            english:"Prophet; a person chosen by Allah to convey His message"},
+  {arabic:"رَسُول",         latin:"Rasul",           english:"Messenger; a prophet given a new divine scripture"},
+  {arabic:"قُرْآن",         latin:"Quran",           english:"The holy book of Islam; the word of Allah revealed to Prophet Muhammad ﷺ"},
+  {arabic:"حَدِيث",         latin:"Hadith",          english:"Sayings and actions of the Prophet Muhammad ﷺ"},
+  {arabic:"سُنَّة",         latin:"Sunnah",          english:"The practices and way of life of the Prophet Muhammad ﷺ"},
+  {arabic:"صَلَاة",         latin:"Salah",           english:"Prayer; one of the Five Pillars of Islam — prayed 5 times daily"},
+  {arabic:"زَكَاة",         latin:"Zakah",           english:"Obligatory charity; one of the Five Pillars — purifies wealth"},
+  {arabic:"صِيَام",         latin:"Siyam",           english:"Fasting; one of the Five Pillars — observed during Ramadan"},
+  {arabic:"حَجّ",           latin:"Hajj",            english:"Pilgrimage to Makkah; one of the Five Pillars — once in a lifetime if able"},
+  {arabic:"شَهَادَة",       latin:"Shahadah",        english:"Declaration of faith — 'There is no god but Allah, Muhammad is His messenger'"},
+  {arabic:"وُضُوء",         latin:"Wudu",            english:"Ritual purification with water before prayer"},
+  {arabic:"مَسْجِد",        latin:"Masjid",          english:"Mosque; place of worship and prostration for Muslims"},
+  {arabic:"دُعَاء",         latin:"Du'a",            english:"Supplication; calling upon Allah directly"},
+  {arabic:"ذِكْر",          latin:"Dhikr",           english:"Remembrance of Allah through phrases and recitation"},
+  {arabic:"تَسْبِيح",       latin:"Tasbih",          english:"Saying 'SubhanAllah' — Glory be to Allah"},
+  {arabic:"رَمَضَان",       latin:"Ramadan",         english:"The 9th month of the Islamic calendar; month of fasting"},
+  {arabic:"عِيد الفِطْر",   latin:"Eid Al-Fitr",     english:"Festival of Breaking Fast; celebrated at the end of Ramadan"},
+  {arabic:"عِيد الأَضْحَى", latin:"Eid Al-Adha",     english:"Festival of Sacrifice; marks the end of Hajj"},
+  {arabic:"صَبْر",          latin:"Sabr",            english:"Patience; steadfastness in the face of difficulty"},
+  {arabic:"شُكْر",          latin:"Shukr",           english:"Gratitude; thankfulness to Allah for His blessings"},
+  {arabic:"تَوْبَة",        latin:"Tawbah",          english:"Repentance; turning back to Allah after sin"},
+  {arabic:"صَدَقَة",        latin:"Sadaqah",         english:"Voluntary charity; any act of giving for the sake of Allah"},
+  {arabic:"جِهَاد",         latin:"Jihad",           english:"Striving; includes striving against the ego and defending the truth"},
+  {arabic:"تَقْوَى",        latin:"Taqwa",           english:"God-consciousness; being mindful of Allah in all actions"},
+  {arabic:"أَمَانَة",        latin:"Amanah",          english:"Trustworthiness; fulfilling one's responsibilities faithfully"},
+];
+
+// ── Prophet Stories ───────────────────────────────────────────────────────────
+const PROPHETS = [
+  {
+    name:"آدَمُ عليه السلام", nameEn:"Adam (AS)", emoji:"🌿",
+    summary:"The first human and first prophet, created by Allah from clay. He lived in Paradise with his wife Hawwa (Eve), but after being deceived by Iblis (Shaytan) into eating from the forbidden tree, he was sent to Earth. He repented sincerely and Allah forgave him — teaching humanity the power of repentance (tawbah).",
+    lesson:"No matter what mistakes we make, sincere repentance brings Allah's forgiveness.",
+    quranRef:"Surah Al-Baqarah 2:30-39"
+  },
+  {
+    name:"نُوحٌ عليه السلام", nameEn:"Nuh / Noah (AS)", emoji:"⛵",
+    summary:"Prophet Nuh called his people to worship Allah alone for 950 years, but most refused. Allah commanded him to build a great ark. When the flood came, all those who rejected the truth were swept away. Those who believed were saved — proving that faith protects while arrogance destroys.",
+    lesson:"Perseverance in truth, even when others mock you, is the mark of a true believer.",
+    quranRef:"Surah Hud 11:25-49"
+  },
+  {
+    name:"إِبْرَاهِيمُ عليه السلام", nameEn:"Ibrahim / Abraham (AS)", emoji:"🔥",
+    summary:"Known as Khalilullah (Friend of Allah), Ibrahim destroyed the idols of his people and was thrown into a fire — yet Allah made the fire cool and safe. He passed the greatest test when Allah commanded him to sacrifice his son Ismail, showing absolute trust in Allah. He built the Ka'bah in Makkah.",
+    lesson:"True love of Allah means placing His command above everything else.",
+    quranRef:"Surah Al-Anbiya 21:51-73"
+  },
+  {
+    name:"يُوسُفُ عليه السلام", nameEn:"Yusuf / Joseph (AS)", emoji:"⭐",
+    summary:"Thrown into a well by his jealous brothers, sold into slavery in Egypt, falsely imprisoned — yet Yusuf never lost hope in Allah. His patience and purity were rewarded when Allah elevated him to a position of great power. He then forgave his brothers completely.",
+    lesson:"Patience through hardship, combined with purity of heart, leads to triumph.",
+    quranRef:"Surah Yusuf 12:1-111 (entire surah)"
+  },
+  {
+    name:"مُوسَىٰ عليه السلام", nameEn:"Musa / Moses (AS)", emoji:"🌊",
+    summary:"Born during Pharaoh's brutal rule, Musa was raised in Pharaoh's own palace. Allah spoke to him directly and commanded him to free the Children of Israel. After many miracles — including splitting the sea — he led his people to freedom. He received the Torah on Mount Sinai.",
+    lesson:"Allah can use the most unlikely circumstances to bring forth His greatest servants.",
+    quranRef:"Surah Al-Qasas 28:1-43"
+  },
+  {
+    name:"عِيسَى عليه السلام", nameEn:"Isa / Jesus (AS)", emoji:"✨",
+    summary:"Born miraculously without a father to the pious Maryam (Mary), Isa spoke as a baby in the cradle to defend his mother's honour. He performed miracles by Allah's permission — healing the blind, raising the dead, and breathing life into clay birds. He was not crucified but raised to the heavens by Allah.",
+    lesson:"Every miracle is from Allah alone — prophets are honoured servants, not divine.",
+    quranRef:"Surah Maryam 19:16-36"
+  },
+  {
+    name:"مُحَمَّدٌ ﷺ", nameEn:"Muhammad ﷺ", emoji:"🌙",
+    summary:"The final and greatest prophet, born in Makkah. Known as Al-Amin (the trustworthy) even before prophethood. He received revelation in the Cave of Hira and spent 23 years calling all of humanity to Islam. He was known for his mercy, generosity, honesty, and gentleness — even toward his enemies.",
+    lesson:"The Prophet ﷺ said: 'The best of you are those with the best character.' Be a living example of Islam.",
+    quranRef:"Surah Al-Ahzab 33:21 — 'In the Messenger is the finest example'"
+  },
+];
+
+// ── Islamic Teachings ─────────────────────────────────────────────────────────
+const TEACHINGS = {
+  pillars:[
+    {num:1, title:"الشَّهَادَة", titleEn:"Shahadah", emoji:"☝️", desc:"Testifying that there is no god worthy of worship except Allah, and that Muhammad ﷺ is His messenger. This is the foundation of all Islamic practice."},
+    {num:2, title:"الصَّلَاة", titleEn:"Salah", emoji:"🕌", desc:"Performing the 5 daily prayers: Fajr (dawn), Dhuhr (midday), Asr (afternoon), Maghrib (sunset), Isha (night). Each prayer connects us to Allah throughout the day."},
+    {num:3, title:"الزَّكَاة", titleEn:"Zakah", emoji:"💚", desc:"Giving 2.5% of annual savings to those in need. Zakah purifies wealth and helps build a just community. It is obligatory for those above the minimum threshold (nisab)."},
+    {num:4, title:"الصِّيَام", titleEn:"Sawm", emoji:"🌙", desc:"Fasting during the month of Ramadan from dawn to sunset — abstaining from food, drink, and wrong actions. It builds taqwa (God-consciousness) and empathy for those in need."},
+    {num:5, title:"الحَجّ", titleEn:"Hajj", emoji:"🕋", desc:"Pilgrimage to Makkah at least once in a lifetime for those physically and financially able. Over 2 million Muslims gather annually, united in worship — the greatest human gathering on Earth."},
+  ],
+  articles:[
+    {num:1, title:"الإِيمَانُ بِاللهِ",          titleEn:"Belief in Allah",         emoji:"🌟", desc:"Believing in the existence and oneness of Allah — no partners, no equals, no children. He is the Creator, Sustainer, and Lord of all that exists."},
+    {num:2, title:"الإِيمَانُ بِالمَلَائِكَة",    titleEn:"Belief in Angels",        emoji:"✨", desc:"Believing in angels — created from light, they obey Allah perfectly. Jibril brought revelation, Mikail oversees provision, Israfil will blow the trumpet, Izrail takes souls."},
+    {num:3, title:"الإِيمَانُ بِالكُتُب",         titleEn:"Belief in Divine Books",  emoji:"📚", desc:"Believing in the books Allah revealed — the Tawrah (Moses), Zabur (David), Injil (Jesus), and the Quran (Muhammad ﷺ). The Quran is the final, perfectly preserved scripture."},
+    {num:4, title:"الإِيمَانُ بِالرُّسُل",        titleEn:"Belief in Prophets",      emoji:"🌿", desc:"Believing in all prophets from Adam to Muhammad ﷺ (the last). There were 124,000 prophets sent to different nations. We do not distinguish between them — all delivered the same essential message: worship Allah alone."},
+    {num:5, title:"الإِيمَانُ بِاليَوْمِ الآخِر", titleEn:"Belief in the Last Day",  emoji:"⚖️", desc:"Believing in death, the resurrection, the Day of Judgment, Paradise (Jannah), and Hellfire. Every action is recorded and will be weighed justly."},
+    {num:6, title:"الإِيمَانُ بِالقَدَر",         titleEn:"Belief in Divine Decree", emoji:"🎯", desc:"Believing that Allah knows all things and has decreed everything. Good and hardship both come from Allah. Our free will exists within His knowledge. We trust His plan entirely."},
+  ],
+  values:[
+    {emoji:"🤲", title:"Mercy (الرَّحْمَة)",   desc:"The Prophet ﷺ said: 'Show mercy to those on earth, and the One in the heavens will show mercy to you.'"},
+    {emoji:"💪", title:"Honesty (الأَمَانَة)", desc:"Be truthful in speech, promise, and action. The Prophet ﷺ was called Al-Amin — the trustworthy — long before prophethood."},
+    {emoji:"🌱", title:"Patience (الصَّبْر)",   desc:"Allah says: 'Indeed, Allah is with the patient.' Sabr is one of the highest virtues in Islam."},
+    {emoji:"🙏", title:"Gratitude (الشُّكْر)",  desc:"'If you are grateful, I will surely increase you in favour.' (Quran 14:7). Gratitude multiplies blessings."},
+    {emoji:"❤️", title:"Kindness (الإِحْسَان)", desc:"Allah loves those who do good to others — in speech, in giving, in visiting the sick, in smiling at a brother/sister."},
+    {emoji:"🧠", title:"Knowledge (الْعِلْم)", desc:"'Seek knowledge from the cradle to the grave.' Learning is a duty for every Muslim man and woman."},
+  ]
+};
+
+// ── Quiz Questions ─────────────────────────────────────────────────────────────
+const QUIZ_QUESTIONS = [
+  {q:"How many pillars of Islam are there?",options:["3","5","7"],a:1},
+  {q:"Which surah is called the 'heart of the Quran'?",options:["Al-Fatiha","Ya-Sin","Al-Ikhlas"],a:1},
+  {q:"How many articles of faith (Arkan Al-Iman) are there?",options:["5","6","7"],a:1},
+  {q:"Who was the first prophet?",options:["Ibrahim AS","Adam AS","Nuh AS"],a:1},
+  {q:"What is the meaning of 'SubhanAllah'?",options:["All praise to Allah","Glory be to Allah","Allah is the Greatest"],a:1},
+  {q:"In which month do Muslims fast?",options:["Shawwal","Ramadan","Muharram"],a:1},
+  {q:"How many times a day do Muslims pray?",options:["3","5","7"],a:1},
+  {q:"What is the first pillar of Islam?",options:["Salah","Zakah","Shahadah"],a:2},
+  {q:"Who built the Ka'bah?",options:["Prophet Musa AS","Prophet Ibrahim AS","Prophet Nuh AS"],a:1},
+  {q:"What does 'Allahu Akbar' mean?",options:["Allah is One","Allah is the Greatest","Allah is Forgiving"],a:1},
+  {q:"How many surahs are in the Quran?",options:["100","114","120"],a:1},
+  {q:"Which prophet is known as Khalilullah (Friend of Allah)?",options:["Yusuf AS","Musa AS","Ibrahim AS"],a:2},
+  {q:"What is Zakah in percentage terms?",options:["2.5%","5%","10%"],a:0},
+  {q:"Which prophet received the Torah?",options:["Isa AS","Musa AS","Ibrahim AS"],a:1},
+  {q:"What does 'Alhamdulillah' mean?",options:["Allah is the Greatest","All praise is due to Allah","In the name of Allah"],a:1},
+  {q:"How many prophets are mentioned by name in the Quran?",options:["25","50","100"],a:0},
+  {q:"What is the sacred direction Muslims face during prayer?",options:["Jerusalem","Makkah (Qiblah)","Madinah"],a:1},
+  {q:"Who was the last prophet?",options:["Isa AS","Ibrahim AS","Muhammad ﷺ"],a:2},
+  {q:"What does 'Hajj' mean?",options:["Fasting","Pilgrimage","Prayer"],a:1},
+  {q:"Which angel brought the Quran to Prophet Muhammad ﷺ?",options:["Mikail","Israfil","Jibril"],a:2},
+];
+
+// ── Tasbih Counter ────────────────────────────────────────────────────────────
+function TasbihCounter() {
+  const TASBIHS = [
+    {ar:"سُبْحَانَ اللَّه", en:"SubhanAllah", color:IP.green,  bg:IP.greenL,  target:33},
+    {ar:"اَلْحَمْدُ لِلَّه",en:"Alhamdulillah",color:IP.teal,  bg:IP.tealL,   target:33},
+    {ar:"اَللَّهُ أَكْبَر", en:"Allahu Akbar", color:IP.navy,  bg:IP.navyL,   target:34},
+  ];
+  const [sel,  setSel]  = useState(0);
+  const [count,setCount]= useState(0);
+  const [total,setTotal]= useState(0);
+  const t = TASBIHS[sel];
+
+  function tap() {
+    const nc = count + 1;
+    setCount(nc);
+    setTotal(total + 1);
+    if (nc >= t.target) {
+      if (sel < TASBIHS.length - 1) {
+        setTimeout(()=>{ setSel(sel+1); setCount(0); }, 400);
+      }
+    }
+  }
+
+  function reset() { setCount(0); setTotal(0); setSel(0); }
+
+  const pct = Math.min(count / t.target, 1);
+  const circ = 2 * Math.PI * 70;
+
+  return e("div",{style:{padding:"0 4px"}},
+    e("h2",{style:{...AF,fontSize:22,color:IP.green,textAlign:"center",marginBottom:16,direction:"rtl"}},"عَدَّادُ التَّسْبِيح"),
+
+    // Phrase tabs
+    e("div",{style:{display:"flex",gap:8,marginBottom:24}},
+      TASBIHS.map((tb,i)=>e("button",{
+        key:i,onClick:()=>{setSel(i);setCount(0);},
+        style:{flex:1,padding:"10px 4px",borderRadius:12,border:"2px solid "+(i===sel?tb.color:"#e5e7eb"),
+          background:i===sel?tb.bg:"#fff",color:i===sel?tb.color:"#6b7280",
+          fontSize:10,fontWeight:700,lineHeight:1.4,cursor:"pointer"}
+      },tb.en))
+    ),
+
+    // Circle counter
+    e("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:16}},
+      e("div",{style:{position:"relative",cursor:"pointer"},onClick:tap},
+        e("svg",{width:180,height:180,viewBox:"0 0 160 160"},
+          e("circle",{cx:80,cy:80,r:70,fill:"none",stroke:"#e5e7eb",strokeWidth:8}),
+          e("circle",{cx:80,cy:80,r:70,fill:"none",stroke:t.color,strokeWidth:8,
+            strokeDasharray:circ,strokeDashoffset:circ*(1-pct),
+            strokeLinecap:"round",transform:"rotate(-90 80 80)",
+            style:{transition:"stroke-dashoffset 0.2s"}}),
+          e("text",{x:80,y:68,textAnchor:"middle",fontFamily:"'Noto Naskh Arabic',serif",
+            fontSize:18,fill:t.color,fontWeight:"bold"},t.ar),
+          e("text",{x:80,y:95,textAnchor:"middle",fontFamily:"system-ui",
+            fontSize:36,fill:t.color,fontWeight:"bold"},count),
+          e("text",{x:80,y:120,textAnchor:"middle",fontFamily:"system-ui",
+            fontSize:13,fill:"#9ca3af"},"/ "+t.target)
+        )
+      ),
+      e("p",{style:{fontSize:12,color:"#6b7280",textAlign:"center"}},
+        "Tap the circle to count • Total today: ",e("strong",null,total)),
+      e("button",{onClick:reset,
+        style:{padding:"10px 32px",background:"#f3f4f6",color:"#6b7280",border:"none",
+          borderRadius:12,fontSize:14,fontWeight:700,cursor:"pointer"}},
+        "Reset"),
+      count >= t.target && sel === TASBIHS.length-1 &&
+        e("div",{style:{background:IP.greenL,border:"1.5px solid "+IP.green,borderRadius:16,
+          padding:"16px",textAlign:"center"}},
+          e("p",{style:{fontSize:20,margin:"0 0 4px"}},"🎉"),
+          e("p",{style:{...AF,fontSize:16,color:IP.greenD,direction:"rtl",fontWeight:700}},
+            "بَارَكَ اللَّهُ فِيكَ!"),
+          e("p",{style:{fontSize:13,color:IP.green,margin:0}},
+            "SubhanAllah 33 × Alhamdulillah 33 × Allahu Akbar 34 complete!"))
+    )
+  );
+}
+
+// ── 99 Names Screen ───────────────────────────────────────────────────────────
+function Names99() {
+  const [q,setQ] = useState("");
+  const [flip,setFlip] = useState(null);
+  const list = q.trim()
+    ? NAMES_99.filter(n=>
+        n.arabic.includes(q)||
+        n.latin.toLowerCase().includes(q.toLowerCase())||
+        n.meaning.toLowerCase().includes(q.toLowerCase()))
+    : NAMES_99;
+  return e("div",null,
+    e("h2",{style:{...AF,fontSize:22,color:IP.green,textAlign:"center",marginBottom:12,direction:"rtl"}},
+      "أَسْمَاءُ اللهِ الحُسْنَى"),
+    e("input",{
+      placeholder:"Search names…",value:q,onChange:ev=>setQ(ev.target.value),
+      style:{width:"100%",padding:"10px 14px",borderRadius:12,border:"1.5px solid #e5e7eb",
+        fontSize:14,marginBottom:16,outline:"none",boxSizing:"border-box"}
+    }),
+    e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
+      list.map(n=>e("div",{
+        key:n.num,
+        onClick:()=>setFlip(flip===n.num?null:n.num),
+        style:{background:flip===n.num?IP.greenL:"#fff",border:"1.5px solid "+(flip===n.num?IP.green:"#e5e7eb"),
+          borderRadius:14,padding:"12px 8px",cursor:"pointer",textAlign:"center",transition:"all .2s"}
+      },
+        flip===n.num
+          ? e("p",{style:{fontSize:12,color:IP.greenD,margin:0,lineHeight:1.5}},n.meaning)
+          : [
+              e("span",{key:"num",style:{fontSize:10,color:"#9ca3af",display:"block"}},n.num),
+              e("p",{key:"ar",style:{...AF,fontSize:18,color:IP.green,margin:"4px 0 2px",direction:"rtl",fontWeight:700}},n.arabic),
+              e("p",{key:"lat",style:{fontSize:11,color:IP.greenD,margin:0}},n.latin),
+            ]
+      ))
+    )
+  );
+}
+
+// ── Duas Screen ───────────────────────────────────────────────────────────────
+function DuasScreen() {
+  const [cat,setCat] = useState(0);
+  const [open,setOpen] = useState(null);
+  const section = DUAS[cat];
+  return e("div",null,
+    e("h2",{style:{...AF,fontSize:22,color:IP.teal,textAlign:"center",marginBottom:12,direction:"rtl"}},
+      "حِصْنُ المُسْلِم"),
+    e("div",{style:{display:"flex",flexWrap:"wrap",gap:6,marginBottom:16}},
+      DUAS.map((d,i)=>e("button",{
+        key:i,onClick:()=>{setCat(i);setOpen(null);},
+        style:{padding:"7px 12px",borderRadius:20,border:"1.5px solid "+(i===cat?IP.teal:"#e5e7eb"),
+          background:i===cat?IP.tealL:"#fff",color:i===cat?IP.teal:"#6b7280",
+          fontSize:11,fontWeight:700,cursor:"pointer"}
+      },d.category))
+    ),
+    e("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+      section.items.map((item,i)=>e("div",{
+        key:i,
+        style:{background:"#fff",borderRadius:16,border:"1.5px solid #e5e7eb",overflow:"hidden"}
+      },
+        e("button",{
+          onClick:()=>setOpen(open===i?null:i),
+          style:{width:"100%",padding:"14px 16px",background:"none",border:"none",
+            display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}
+        },
+          e("span",{style:{...AF,fontSize:15,color:IP.teal,direction:"rtl",fontWeight:700}},item.title),
+          e("span",{style:{fontSize:18,transition:"transform .2s",transform:open===i?"rotate(90deg)":"none"}},"›")
+        ),
+        open===i && e("div",{style:{padding:"0 16px 16px",borderTop:"1px solid #f3f4f6"}},
+          e("p",{style:{...AF,fontSize:17,color:"#1e293b",lineHeight:2,direction:"rtl",
+            margin:"12px 0 8px",textAlign:"right"}},item.arabic),
+          e("p",{style:{fontSize:12,color:IP.teal,fontStyle:"italic",margin:"0 0 8px",lineHeight:1.6}},
+            item.latin),
+          e("p",{style:{fontSize:13,color:"#475569",lineHeight:1.6,margin:0}},item.meaning)
+        )
+      ))
+    )
+  );
+}
+
+// ── Quran Screen ──────────────────────────────────────────────────────────────
+function QuranScreen() {
+  const [sel,setSel] = useState(null);
+  const [showTr,setShowTr] = useState(true);
+  const [showEn,setShowEn] = useState(true);
+  if (sel !== null) {
+    const s = SURAHS[sel];
+    return e("div",null,
+      e("button",{onClick:()=>setSel(null),
+        style:{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",
+          color:IP.green,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:16}},
+        "← Back"),
+      e("div",{style:{background:IP.greenL,borderRadius:16,padding:"16px",marginBottom:16,textAlign:"center"}},
+        e("p",{style:{...AF,fontSize:28,color:IP.green,margin:"0 0 4px",direction:"rtl",fontWeight:700}},s.name),
+        e("p",{style:{fontSize:13,color:IP.greenD,margin:"0 0 8px"}},"Surah "+s.nameEn+" • "+s.ayahs+" Ayahs"),
+        e("div",{style:{display:"flex",gap:8,justifyContent:"center"}},
+          e("button",{onClick:()=>setShowTr(!showTr),
+            style:{padding:"5px 12px",borderRadius:20,border:"1.5px solid "+IP.teal,
+              background:showTr?IP.tealL:"#fff",color:IP.teal,fontSize:11,cursor:"pointer",fontWeight:700}},
+            "Transliteration"),
+          e("button",{onClick:()=>setShowEn(!showEn),
+            style:{padding:"5px 12px",borderRadius:20,border:"1.5px solid "+IP.navy,
+              background:showEn?IP.navyL:"#fff",color:IP.navy,fontSize:11,cursor:"pointer",fontWeight:700}},
+            "Translation")
+        )
+      ),
+      e("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+        s.verses.map((v,i)=>e("div",{key:i,
+          style:{background:"#fff",borderRadius:14,padding:"14px 16px",border:"1.5px solid #e5e7eb"}},
+          e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}},
+            e("span",{style:{fontSize:11,color:IP.gold,fontWeight:700,minWidth:24,paddingTop:4}},(i+1)),
+            e("p",{style:{...AF,fontSize:20,color:"#1e293b",direction:"rtl",textAlign:"right",
+              margin:0,lineHeight:2,flex:1}},v.ar)
+          ),
+          showTr && e("p",{style:{fontSize:12,color:IP.teal,fontStyle:"italic",
+            margin:"8px 0 4px",lineHeight:1.6}},v.tr),
+          showEn && e("p",{style:{fontSize:13,color:"#475569",margin:0,lineHeight:1.6}},v.en)
+        ))
+      )
+    );
+  }
+  return e("div",null,
+    e("h2",{style:{...AF,fontSize:22,color:IP.green,textAlign:"center",marginBottom:8,direction:"rtl"}},
+      "القُرْآنُ الكَرِيم"),
+    e("p",{style:{fontSize:13,color:"#6b7280",textAlign:"center",marginBottom:16}},
+      "Selected Surahs with Arabic, transliteration & translation"),
+    e("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+      SURAHS.map((s,i)=>e("button",{
+        key:i,onClick:()=>setSel(i),
+        style:{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:16,padding:"16px",
+          textAlign:"right",cursor:"pointer",display:"flex",alignItems:"center",
+          justifyContent:"space-between",gap:12}
+      },
+        e("div",null,
+          e("p",{style:{...AF,fontSize:20,color:IP.green,margin:"0 0 2px",direction:"rtl",fontWeight:700}},s.name),
+          e("p",{style:{fontSize:12,color:"#6b7280",margin:0}},"Surah "+s.nameEn+" ("+s.ayahs+" ayahs)")
+        ),
+        e("span",{style:{fontSize:24,background:IP.goldL,borderRadius:50,
+          width:44,height:44,display:"flex",alignItems:"center",justifyContent:"center",
+          color:IP.gold,fontWeight:700,fontSize:14,minWidth:44}},s.num)
+      ))
+    )
+  );
+}
+
+// ── Dictionary Screen ─────────────────────────────────────────────────────────
+function DictionaryScreen() {
+  const [q,setQ]=useState("");
+  const list = q.trim()
+    ? ISLAMIC_DICT.filter(d=>
+        d.arabic.includes(q)||
+        d.latin.toLowerCase().includes(q.toLowerCase())||
+        d.english.toLowerCase().includes(q.toLowerCase()))
+    : ISLAMIC_DICT;
+  return e("div",null,
+    e("h2",{style:{...AF,fontSize:22,color:IP.navy,textAlign:"center",marginBottom:12,direction:"rtl"}},
+      "القَامُوسُ الإِسْلَامِي"),
+    e("input",{
+      placeholder:"Search terms…",value:q,onChange:ev=>setQ(ev.target.value),
+      style:{width:"100%",padding:"10px 14px",borderRadius:12,border:"1.5px solid #e5e7eb",
+        fontSize:14,marginBottom:16,outline:"none",boxSizing:"border-box",direction:"ltr"}
+    }),
+    e("div",{style:{display:"flex",flexDirection:"column",gap:8}},
+      list.map((d,i)=>e("div",{key:i,
+        style:{background:"#fff",borderRadius:14,padding:"14px 16px",border:"1.5px solid #e5e7eb"}},
+        e("div",{style:{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8,marginBottom:4}},
+          e("p",{style:{...AF,fontSize:20,color:IP.navy,margin:0,direction:"rtl",fontWeight:700}},d.arabic),
+          e("p",{style:{fontSize:12,color:IP.teal,fontWeight:700,margin:0,fontStyle:"italic"}},d.latin)
+        ),
+        e("p",{style:{fontSize:13,color:"#475569",margin:0,lineHeight:1.5}},d.english)
+      ))
+    )
+  );
+}
+
+// ── Prayer Times Screen ───────────────────────────────────────────────────────
+function PrayerTimesScreen() {
+  const [times,setTimes]=useState(null);
+  const [city,setCity]=useState("");
+  const [err,setErr]=useState(null);
+  const [loading,setLoading]=useState(false);
+
+  function calcPrayers(lat,lon) {
+    const now = new Date();
+    const d = now;
+    const tz = -d.getTimezoneOffset()/60;
+    const jd = Math.floor(365.25*(d.getFullYear()+4716)) +
+               Math.floor(30.6001*(d.getMonth()+2)) +
+               d.getDate() - 1524.5;
+    const D = jd - 2451545.0;
+    const g = (357.529 + 0.98560028*D) % 360;
+    const q = (280.459 + 0.98564736*D) % 360;
+    const L = q + 1.915*Math.sin(g*Math.PI/180) + 0.020*Math.sin(2*g*Math.PI/180);
+    const e2 = 23.439 - 0.00000036*D;
+    const RA = Math.atan2(Math.cos(e2*Math.PI/180)*Math.sin(L*Math.PI/180),Math.cos(L*Math.PI/180))*180/Math.PI/15;
+    const decl = Math.asin(Math.sin(e2*Math.PI/180)*Math.sin(L*Math.PI/180))*180/Math.PI;
+    const EqT = q/15 - ((RA+360)%24);
+    const Dhuhr = 12 - EqT - (lon/15 - tz);
+
+    function angle(a) {
+      const r = Math.acos((-Math.sin(a*Math.PI/180)-Math.sin(lat*Math.PI/180)*Math.sin(decl*Math.PI/180))/(Math.cos(lat*Math.PI/180)*Math.cos(decl*Math.PI/180)))*180/Math.PI;
+      return r/15;
+    }
+    function fmt(h) {
+      const total = ((h%24)+24)%24;
+      const hh = Math.floor(total);
+      const mm = Math.floor((total-hh)*60);
+      const ampm = hh>=12?"PM":"AM";
+      return `${hh%12||12}:${String(mm).padStart(2,"0")} ${ampm}`;
+    }
+
+    const fajrA   = angle(18);
+    const ishaA   = angle(17);
+    const asrT    = Dhuhr + Math.acos((Math.sin(Math.atan2(1,1+Math.tan(Math.abs(lat-decl)*Math.PI/180)))-Math.sin(lat*Math.PI/180)*Math.sin(decl*Math.PI/180))/(Math.cos(lat*Math.PI/180)*Math.cos(decl*Math.PI/180)))*180/Math.PI/15;
+
+    return [
+      {name:"الفَجْر",     en:"Fajr",    time:fmt(Dhuhr-fajrA), emoji:"🌅"},
+      {name:"الشُّرُوق",   en:"Sunrise", time:fmt(Dhuhr-angle(0.833)), emoji:"☀️"},
+      {name:"الظُّهْر",    en:"Dhuhr",   time:fmt(Dhuhr), emoji:"🌞"},
+      {name:"العَصْر",     en:"Asr",     time:fmt(asrT), emoji:"🌤"},
+      {name:"المَغْرِب",   en:"Maghrib", time:fmt(Dhuhr+angle(0.833)), emoji:"🌅"},
+      {name:"العِشَاء",    en:"Isha",    time:fmt(Dhuhr+ishaA), emoji:"🌙"},
+    ];
+  }
+
+  function locate() {
+    if (!navigator.geolocation) { setErr("Geolocation not supported."); return; }
+    setLoading(true); setErr(null);
+    navigator.geolocation.getCurrentPosition(
+      pos=>{ setTimes(calcPrayers(pos.coords.latitude,pos.coords.longitude)); setLoading(false); },
+      ()=>{ setErr("Location access denied. Please allow location."); setLoading(false); }
+    );
+  }
+
+  const now = new Date();
+  const HH = now.getHours(), MM = now.getMinutes();
+  function toMins(str){
+    const [t,ap]=str.split(" ");
+    const [h,m]=t.split(":").map(Number);
+    return (h%12+(ap==="PM"?12:0))*60+m;
+  }
+  const curMins = HH*60+MM;
+  let nextIdx = -1;
+  if (times) {
+    nextIdx = times.findIndex(t=>toMins(t.time)>curMins);
+    if (nextIdx===-1) nextIdx=0;
+  }
+
+  return e("div",null,
+    e("h2",{style:{...AF,fontSize:22,color:IP.teal,textAlign:"center",marginBottom:8,direction:"rtl"}},
+      "أَوْقَاتُ الصَّلَاة"),
+    e("p",{style:{fontSize:13,color:"#6b7280",textAlign:"center",marginBottom:16}},
+      "Calculated for your location using standard method"),
+
+    !times && e("div",{style:{textAlign:"center",padding:"24px 0"}},
+      e("button",{onClick:locate,disabled:loading,
+        style:{padding:"14px 28px",background:IP.green,color:"#fff",border:"none",
+          borderRadius:16,fontSize:15,fontWeight:700,cursor:"pointer"}},
+        loading?"Locating…":"📍 Get My Prayer Times"),
+      err && e("p",{style:{color:"#ef4444",fontSize:13,marginTop:12}},err)
+    ),
+
+    times && e("div",null,
+      e("div",{style:{display:"flex",flexDirection:"column",gap:8}},
+        times.map((pt,i)=>e("div",{key:i,
+          style:{background:i===nextIdx?IP.greenL:"#fff",
+            border:"1.5px solid "+(i===nextIdx?IP.green:"#e5e7eb"),
+            borderRadius:14,padding:"14px 16px",display:"flex",
+            justifyContent:"space-between",alignItems:"center"}},
+          e("div",{style:{display:"flex",alignItems:"center",gap:10}},
+            e("span",{style:{fontSize:22}},pt.emoji),
+            e("div",null,
+              e("p",{style:{...AF,fontSize:16,color:i===nextIdx?IP.greenD:"#1e293b",
+                margin:0,direction:"rtl",fontWeight:700}},pt.name),
+              e("p",{style:{fontSize:11,color:"#6b7280",margin:0}},pt.en)
+            )
+          ),
+          e("div",{style:{textAlign:"right"}},
+            e("p",{style:{fontSize:18,fontWeight:800,color:i===nextIdx?IP.green:"#1e293b",margin:0}},pt.time),
+            i===nextIdx && e("p",{style:{fontSize:10,color:IP.green,margin:0,fontWeight:700}},"Next ↑")
+          )
+        ))
+      ),
+      e("button",{onClick:()=>setTimes(null),
+        style:{marginTop:16,width:"100%",background:"#f3f4f6",color:"#6b7280",
+          border:"none",borderRadius:12,padding:"10px",fontSize:13,cursor:"pointer",fontWeight:600}},
+        "Refresh Location")
+    )
+  );
+}
+
+// ── Teachings Screen ──────────────────────────────────────────────────────────
+function TeachingsScreen() {
+  const [tab,setTab]=useState("pillars");
+  const tabs=[{k:"pillars",label:"5 Pillars"},{k:"articles",label:"6 Articles of Faith"},{k:"values",label:"Islamic Values"}];
+  const data = TEACHINGS[tab];
+  return e("div",null,
+    e("h2",{style:{...AF,fontSize:22,color:IP.navy,textAlign:"center",marginBottom:12,direction:"rtl"}},
+      "التَّعَالِيمُ الإِسْلَامِيَّة"),
+    e("div",{style:{display:"flex",gap:6,marginBottom:16}},
+      tabs.map(t=>e("button",{
+        key:t.k,onClick:()=>setTab(t.k),
+        style:{flex:1,padding:"8px 4px",borderRadius:12,border:"1.5px solid "+(tab===t.k?IP.navy:"#e5e7eb"),
+          background:tab===t.k?IP.navyL:"#fff",color:tab===t.k?IP.navy:"#6b7280",
+          fontSize:11,fontWeight:700,cursor:"pointer"}
+      },t.label))
+    ),
+    e("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+      data.map((item,i)=>e("div",{key:i,
+        style:{background:"#fff",borderRadius:14,padding:"14px 16px",border:"1.5px solid #e5e7eb"}},
+        e("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:6}},
+          e("span",{style:{fontSize:24}},item.emoji),
+          e("div",null,
+            item.titleEn && e("p",{style:{fontWeight:800,fontSize:14,color:IP.navy,margin:0}},
+              (item.num?""+item.num+". ":"")+item.titleEn),
+            item.title && e("p",{style:{...AF,fontSize:13,color:IP.green,margin:0,direction:"rtl"}},item.title)
+          )
+        ),
+        e("p",{style:{fontSize:13,color:"#475569",margin:0,lineHeight:1.6}},item.desc)
+      ))
+    )
+  );
+}
+
+// ── Prophet Stories Screen ────────────────────────────────────────────────────
+function ProphetsScreen() {
+  const [sel,setSel]=useState(null);
+  if (sel!==null) {
+    const p = PROPHETS[sel];
+    return e("div",null,
+      e("button",{onClick:()=>setSel(null),
+        style:{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",
+          color:IP.green,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:16}},
+        "← Back"),
+      e("div",{style:{background:IP.greenL,borderRadius:20,padding:20,marginBottom:16,textAlign:"center"}},
+        e("p",{style:{fontSize:40,margin:"0 0 8px"}},p.emoji),
+        e("p",{style:{...AF,fontSize:22,color:IP.greenD,margin:"0 0 4px",direction:"rtl",fontWeight:700}},p.name),
+        e("p",{style:{fontSize:14,color:IP.green,margin:0,fontWeight:700}},p.nameEn)
+      ),
+      e("div",{style:{background:"#fff",borderRadius:16,padding:16,border:"1.5px solid #e5e7eb",marginBottom:12}},
+        e("p",{style:{fontWeight:800,color:IP.navy,margin:"0 0 8px",fontSize:13}},"📖 The Story"),
+        e("p",{style:{fontSize:14,color:"#374151",lineHeight:1.7,margin:0}},p.summary)
+      ),
+      e("div",{style:{background:IP.goldL,borderRadius:16,padding:16,border:"1.5px solid "+IP.gold,marginBottom:12}},
+        e("p",{style:{fontWeight:800,color:"#92400e",margin:"0 0 6px",fontSize:13}},"💡 Lesson"),
+        e("p",{style:{fontSize:14,color:"#78350f",margin:0,lineHeight:1.6}},p.lesson)
+      ),
+      e("p",{style:{fontSize:12,color:"#9ca3af",textAlign:"center"}},
+        "📚 Quran Reference: ",e("em",null,p.quranRef))
+    );
+  }
+  return e("div",null,
+    e("h2",{style:{...AF,fontSize:22,color:IP.green,textAlign:"center",marginBottom:8,direction:"rtl"}},
+      "قِصَصُ الأَنْبِيَاء"),
+    e("p",{style:{fontSize:13,color:"#6b7280",textAlign:"center",marginBottom:16}},
+      "Tap a prophet to read their story"),
+    e("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+      PROPHETS.map((p,i)=>e("button",{
+        key:i,onClick:()=>setSel(i),
+        style:{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:16,
+          padding:"14px 16px",textAlign:"right",cursor:"pointer",
+          display:"flex",alignItems:"center",gap:12}
+      },
+        e("span",{style:{fontSize:28}},p.emoji),
+        e("div",{style:{flex:1}},
+          e("p",{style:{...AF,fontSize:16,color:IP.greenD,margin:"0 0 2px",direction:"rtl",fontWeight:700}},p.name),
+          e("p",{style:{fontSize:12,color:"#6b7280",margin:0}},p.nameEn)
+        ),
+        e("span",{style:{color:"#d1d5db",fontSize:20}},"›")
+      ))
+    )
+  );
+}
+
+// ── Islamic Quiz Screen ───────────────────────────────────────────────────────
+function QuizScreen() {
+  const [phase,setPhase] = useState("start"); // start|playing|done
+  const [qs,setQs] = useState([]);
+  const [idx,setIdx] = useState(0);
+  const [score,setScore] = useState(0);
+  const [chosen,setChosen] = useState(null);
+  const [answered,setAnswered] = useState(false);
+
+  function start() {
+    setQs(shuffle(QUIZ_QUESTIONS).slice(0,10));
+    setIdx(0); setScore(0); setChosen(null); setAnswered(false);
+    setPhase("playing");
+  }
+
+  function pick(i) {
+    if (answered) return;
+    setChosen(i); setAnswered(true);
+    if (i === qs[idx].a) setScore(s=>s+1);
+  }
+
+  function next() {
+    if (idx >= qs.length-1) { setPhase("done"); return; }
+    setIdx(idx+1); setChosen(null); setAnswered(false);
+  }
+
+  if (phase==="start") return e("div",{style:{textAlign:"center",padding:"24px 0"}},
+    e("p",{style:{fontSize:40,margin:"0 0 8px"}},"🧠"),
+    e("h2",{style:{...AF,fontSize:22,color:IP.purple,direction:"rtl",marginBottom:8}},"مُسَابَقَةٌ إِسْلَامِيَّة"),
+    e("p",{style:{fontSize:14,color:"#6b7280",marginBottom:24,lineHeight:1.6}},
+      "10 questions on Islamic knowledge.\nPillars, prophets, Quran & more!"),
+    e("button",{onClick:start,
+      style:{padding:"14px 32px",background:IP.purple,color:"#fff",border:"none",
+        borderRadius:16,fontSize:16,fontWeight:700,cursor:"pointer"}},
+      "Start Quiz 🚀")
+  );
+
+  if (phase==="done") {
+    const pct = Math.round(score/qs.length*100);
+    const msg = pct>=80?"Excellent! ماشاء الله 🌟":pct>=60?"Good effort! Keep learning 📚":"Keep practising! الله يبارك فيك 💪";
+    return e("div",{style:{textAlign:"center",padding:"16px 0"}},
+      e("p",{style:{fontSize:48,margin:"0 0 8px"}},"🏆"),
+      e("h3",{style:{fontSize:22,fontWeight:800,color:IP.purple,marginBottom:4}},
+        `${score} / ${qs.length}`),
+      e("p",{style:{fontSize:14,color:"#6b7280",marginBottom:8}},`${pct}% correct`),
+      e("p",{style:{fontSize:15,color:IP.navy,fontWeight:700,marginBottom:24}},msg),
+      e("button",{onClick:start,
+        style:{padding:"12px 28px",background:IP.purple,color:"#fff",border:"none",
+          borderRadius:14,fontSize:14,fontWeight:700,cursor:"pointer",marginRight:8}},
+        "Try Again"),
+    );
+  }
+
+  const q = qs[idx];
+  return e("div",null,
+    e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}},
+      e("span",{style:{fontSize:13,color:"#6b7280",fontWeight:700}},`Question ${idx+1}/${qs.length}`),
+      e("span",{style:{fontSize:13,color:IP.purple,fontWeight:700}},`Score: ${score}`)
+    ),
+    e("div",{style:{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:16,padding:20,marginBottom:16}},
+      e("p",{style:{fontSize:16,fontWeight:700,color:IP.navy,margin:0,lineHeight:1.5}},q.q)
+    ),
+    e("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+      q.options.map((opt,i)=>{
+        let bg="#fff",border="1.5px solid #e5e7eb",color="#374151";
+        if (answered) {
+          if (i===q.a) { bg=IP.greenL; border="2px solid "+IP.green; color=IP.greenD; }
+          else if (i===chosen&&i!==q.a) { bg="#fee2e2"; border="2px solid #ef4444"; color="#b91c1c"; }
+        } else if (chosen===i) { bg=IP.purpleL; border="2px solid "+IP.purple; color=IP.purple; }
+        return e("button",{key:i,onClick:()=>pick(i),
+          style:{padding:"14px 16px",borderRadius:14,border,background:bg,color,
+            fontSize:14,fontWeight:600,textAlign:"left",cursor:"pointer",transition:"all .15s"}},
+          opt);
+      })
+    ),
+    answered && e("button",{onClick:next,
+      style:{marginTop:16,width:"100%",padding:"13px",background:IP.purple,color:"#fff",
+        border:"none",borderRadius:14,fontSize:15,fontWeight:700,cursor:"pointer"}},
+      idx>=qs.length-1?"See Results →":"Next Question →")
+  );
+}
+
+// ── Islamic Studies Root ───────────────────────────────────────────────────────
+function IslamicStudies({ onHome }) {
+  const SECTIONS = [
+    {key:"quran",    label:"Quran",       emoji:"📗"},
+    {key:"tasbih",   label:"Tasbih",      emoji:"📿"},
+    {key:"dict",     label:"Dictionary",  emoji:"📖"},
+    {key:"duas",     label:"Duas",        emoji:"🤲"},
+    {key:"prayer",   label:"Prayer",      emoji:"🕌"},
+    {key:"names",    label:"99 Names",    emoji:"✨"},
+    {key:"teach",    label:"Teachings",   emoji:"🌟"},
+    {key:"prophets", label:"Prophets",    emoji:"🌿"},
+    {key:"quiz",     label:"Quiz",        emoji:"🧠"},
+  ];
+  const [sec,setSec]=useState("quran");
+
+  return e("div",{style:{minHeight:"100vh",background:"#f0fdf4"}},
+    // Header
+    e("div",{style:{background:"linear-gradient(135deg,"+IP.green+","+IP.greenD+")",
+      padding:"14px 16px 16px",position:"sticky",top:0,zIndex:10}},
+      e("div",{style:{display:"flex",alignItems:"center",marginBottom:6}},
+        onHome && e("button",{onClick:onHome,
+          style:{background:"rgba(255,255,255,.2)",border:"none",borderRadius:10,padding:"6px 10px",
+            display:"flex",alignItems:"center",gap:4,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0}},
+          I.home(15,"#fff")," الرَّئِيسِيَّة")
+      ),
+      e("p",{style:{...AF,fontSize:22,color:"#fff",textAlign:"center",margin:0,direction:"rtl",
+        fontWeight:700}},"الدِّرَاسَاتُ الإِسْلَامِيَّة"),
+      e("p",{style:{fontSize:11,color:"rgba(255,255,255,.75)",textAlign:"center",margin:"2px 0 0"}},"Islamic Studies")
+    ),
+    // Section nav
+    e("div",{style:{overflowX:"auto",background:"#fff",borderBottom:"1.5px solid #e5e7eb",
+      display:"flex",gap:0,position:"sticky",top:64,zIndex:9}},
+      SECTIONS.map(s=>e("button",{
+        key:s.key,onClick:()=>setSec(s.key),
+        style:{display:"flex",flexDirection:"column",alignItems:"center",gap:2,
+          padding:"10px 12px",background:"none",
+          border:"none",borderBottom:sec===s.key?"3px solid "+IP.green:"3px solid transparent",
+          color:sec===s.key?IP.green:"#6b7280",cursor:"pointer",
+          minWidth:64,fontSize:9,fontWeight:700,whiteSpace:"nowrap"}
+      },
+        e("span",{style:{fontSize:18}},s.emoji),
+        s.label
+      ))
+    ),
+    // Content
+    e("div",{style:{maxWidth:520,margin:"0 auto",padding:"16px 14px 100px"}},
+      sec==="quran"    && e(QuranScreen),
+      sec==="tasbih"   && e(TasbihCounter),
+      sec==="dict"     && e(DictionaryScreen),
+      sec==="duas"     && e(DuasScreen),
+      sec==="prayer"   && e(PrayerTimesScreen),
+      sec==="names"    && e(Names99),
+      sec==="teach"    && e(TeachingsScreen),
+      sec==="prophets" && e(ProphetsScreen),
+      sec==="quiz"     && e(QuizScreen),
+    )
+  );
+}
+
+// ── ROOT APP ──────────────────────────────────────────────────────────────────
+function App() {
+  const { lessons, banks, loaded } = useContent();
+  const [progress, setProgress]    = useState(loadP);
+  const [screen, setScreen]        = useState("home");
+  const [activeLessonId, setALId]  = useState(null);
+  const [activeDrillKey, setADKey] = useState(null);
+  const [printLessonId, setPLId]   = useState(null);
+  const [tab, setTab]              = useState("arabic"); // "arabic" | "islamic"
+  const lastDate = useRef(progress?.lastActiveDate||null);
+
+  useEffect(()=>{
+    const today=new Date().toISOString().slice(0,10);
+    const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
+    if(lastDate.current!==today){
+      const ns=lastDate.current===yesterday?(progress?.streak||0)+1:1;
+      const u={...progress,streak:ns,lastActiveDate:today};
+      setProgress(u); saveP(u); lastDate.current=today;
+    }
+  },[]);
+
+  const updateP = useCallback(updates=>{
+    setProgress(prev=>{const n={...prev,...updates};saveP(n);return n;});
+  },[]);
+
+  const completeLesson = useCallback((id,quiz,gram)=>{
+    updateP({lessons:{...(progress?.lessons||{}),[id]:{quiz,grammar:gram,date:new Date().toISOString()}}});
+    setScreen("home");
+  },[progress,updateP]);
+
+  const completeDrill = useCallback((bankKey,correct,total,wrongMap)=>{
+    const prev=progress?.drillStats?.[bankKey]||{attempts:0,correct:0};
+    const pw=progress?.drillWrong?.[bankKey]||{};
+    const nw={...pw};
+    Object.entries(wrongMap).forEach(([w,c])=>{nw[w]=(nw[w]||0)+c;});
+    updateP({
+      drillStats:{...(progress?.drillStats||{}),[bankKey]:{attempts:prev.attempts+total,correct:prev.correct+correct}},
+      drillWrong:{...(progress?.drillWrong||{}),[bankKey]:nw},
+    });
+    setScreen("drill-picker");
+  },[progress,updateP]);
+
+  const al = lessons.find(l=>l.id===activeLessonId);
+  const pl = lessons.find(l=>l.id===printLessonId);
+
+  if(screen==="print"&&pl)
+    return e(PrintView,{lesson:pl,onClose:()=>{setPLId(null);setScreen("home");}});
+
+  // Bottom navigation bar
+  const BottomNav = e("div",{className:"bottom-nav-bar",style:{
+    position:"fixed",bottom:0,left:0,right:0,zIndex:50,
+    display:"flex",borderTop:"1.5px solid #e5e7eb",
+    background:"#fff",boxShadow:"0 -2px 12px rgba(0,0,0,.08)"
+  }},
+    e("button",{onClick:()=>{setTab("arabic");setScreen("home");},style:{
+      flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,
+      padding:"10px 0 12px",background:"none",border:"none",cursor:"pointer",
+      color:tab==="arabic"?P.indigo:"#9ca3af",fontWeight:700,fontSize:10
+    }},
+      e("span",{style:{fontSize:22}},"📖"),
+      "Arabic"
+    ),
+    e("button",{onClick:()=>setTab("islamic"),style:{
+      flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,
+      padding:"10px 0 12px",background:"none",border:"none",cursor:"pointer",
+      color:tab==="islamic"?IP.green:"#9ca3af",fontWeight:700,fontSize:10
+    }},
+      e("span",{style:{fontSize:22}},"🌙"),
+      "Islamic"
+    )
+  );
+
+  if (tab==="islamic") return e("div",null, e(IslamicStudies,{onHome:()=>{setTab("arabic");setScreen("home");}}), BottomNav);
+
+  return e("div",{style:{minHeight:"100vh",background:"#f0f4ff"}},
+    e("div",{style:{maxWidth:520,margin:"0 auto",padding:"16px 14px 80px"}},
+      screen==="home" && e(HomeScreen,{
+        lessons, banks, progress, contentLoaded:loaded,
+        onLesson:id=>{setALId(id);setScreen("lesson");},
+        onDrill:()=>setScreen("drill-picker"),
+        onDashboard:()=>setScreen("dashboard"),
+        onPrint:id=>{setPLId(id);setScreen("print");},
+      }),
+      screen==="lesson"&&al && e("div",null,
+        e(LessonFlow,{lesson:al,onComplete:completeLesson,onBack:()=>setScreen("home")}),
+        e("button",{onClick:()=>{setPLId(activeLessonId);setScreen("print");},
+          style:{marginTop:16,width:"100%",background:"#fff",color:P.gray,
+            border:"2px solid #e5e7eb",borderRadius:12,padding:"11px 0",fontSize:13,
+            display:"flex",alignItems:"center",justifyContent:"center",gap:6}},
+          I.printer(14,P.gray)," Parent / Print View")
+      ),
+      screen==="drill-picker" && e(DrillPicker,{
+        banks, progress,
+        onStart:key=>{setADKey(key);setScreen("drill-session");},
+        onBack:()=>setScreen("home"),
+      }),
+      screen==="drill-session"&&activeDrillKey && e(DrillSession,{
+        bankKey:activeDrillKey, banks, progress,
+        onFinish:(c,t,w)=>completeDrill(activeDrillKey,c,t,w),
+        onHome:()=>setScreen("home"),
+      }),
+      screen==="dashboard" && e(Dashboard,{lessons,banks,progress,onBack:()=>setScreen("home")})
+    ),
+    BottomNav
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(e(App,null));
+</script>
+</body>
+</html>
