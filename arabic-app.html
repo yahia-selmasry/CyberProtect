@@ -4109,14 +4109,6 @@ function getAllGameWords(lessons) {
   return words;
 }
 
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length-1; i > 0; i--) {
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i],a[j]] = [a[j],a[i]];
-  }
-  return a;
-}
 
 // ─── GAME 1: Word Match ────────────────────────────────────────────────────
 // Pick 6 words, show Arabic column + English column shuffled, tap to match
