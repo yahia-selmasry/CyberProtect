@@ -1888,7 +1888,7 @@ const STORY_THEMES = [
   {key:"season",   label:"فُصُول",    emoji:"🌸", color:"#ec4899"},
 ];
 
-function HomeScreen({ lessons, banks, progress, contentLoaded, onLesson, onDrill, onDashboard, onPrint, onPrintAll, onGrammar, onVocab }) {
+function HomeScreen({ lessons, banks, progress, contentLoaded, onLesson, onDrill, onDashboard, onPrint, onPrintAll, onGrammar, onVocab, onGames }) {
   const [activeWeek, setActiveWeek] = useState("all");
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeStoryTheme, setActiveStoryTheme] = useState("all");
@@ -2113,6 +2113,25 @@ function HomeScreen({ lessons, banks, progress, contentLoaded, onLesson, onDrill
         e("p",{style:{...AF,fontSize:15,fontWeight:900,color:"#92400e",direction:"rtl",margin:"0 0 2px"}},"تَقَدُّمِي"),
         e("p",{style:{fontSize:11,color:P.gray,margin:0,fontWeight:700}},`${Object.keys(lessonScores).length}/${lessons.length} درس`)
       )
+    ),
+
+    // Games banner
+    e("button",{onClick:onGames,
+      style:{width:"100%",marginBottom:16,
+        background:"linear-gradient(135deg,#ede9fe,#fce7f3)",
+        border:"2.5px solid #c4b5fd",borderRadius:20,padding:"18px 20px",
+        cursor:"pointer",display:"flex",alignItems:"center",gap:16,
+        boxShadow:"0 4px 20px rgba(124,58,237,.18)",textAlign:"right"}},
+      e("div",{style:{
+        width:56,height:56,borderRadius:16,flexShrink:0,
+        background:"linear-gradient(135deg,#7c3aed,#db2777)",
+        display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,
+        boxShadow:"0 4px 12px rgba(124,58,237,.35)"}}, "🎮"),
+      e("div",{style:{flex:1}},
+        e("div",{style:{...AF,fontSize:17,fontWeight:900,color:"#7c3aed",marginBottom:3}}, "أَلْعَاب التَّعَلُّم"),
+        e("div",{style:{fontSize:12,color:"#6b7280",fontWeight:700}}, "Word Match · Spelling Bee · Story Scramble")
+      ),
+      e("div",{style:{fontSize:20,color:"#7c3aed",opacity:.7}},"←")
     ),
 
     // print all button
@@ -4631,14 +4650,6 @@ function App() {
     }},
       e("span",{style:{fontSize:22}},"🌙"),
       "إِسْلَامِيَّات"
-    ),
-    e("button",{onClick:()=>setTab("games"),style:{
-      flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,
-      padding:"10px 0 14px",background:"none",border:"none",cursor:"pointer",
-      color:tab==="games"?GMP.purple:"#9ca3af",fontWeight:800,fontSize:11
-    }},
-      e("span",{style:{fontSize:22}},"🎮"),
-      "أَلْعَاب"
     )
   );
 
@@ -4666,10 +4677,6 @@ function App() {
     e("button",{className:tab==="islamic"?"active":"",
       onClick:()=>setTab("islamic")},
       e("span",{className:"nav-icon"},"🌙"), "الإِسْلَامِيَّات"),
-    e("button",{className:tab==="games"?"active":"",
-      onClick:()=>setTab("games"),
-      style:tab==="games"?{background:`linear-gradient(135deg,${GMP.purpleL},${GMP.goldL})`,color:GMP.purple,boxShadow:`0 2px 8px ${GMP.purple}33`}:{}},
-      e("span",{className:"nav-icon"},"🎮"), "أَلْعَاب"),
     e("div",{style:{flex:1}}),
     e("button",{onClick:()=>setScreen("print-all"),
       style:{background:"#f0fdf4",color:P.greenD,borderRadius:12}},
@@ -4700,14 +4707,6 @@ function App() {
     BottomNav
   );
 
-  if (tab==="games") return e("div",{className:"app-shell"},
-    SidebarNav,
-    e("div",{className:"content-area",style:{padding:"0 0 80px"}},
-      e(GamesSection,{lessons,onHome:()=>{setTab("arabic");setScreen("home");}})
-    ),
-    BottomNav
-  );
-
   return e("div",{className:"app-shell",style:{background:"#fff8f0"}},
     SidebarNav,
     e("div",{className:"content-area"},
@@ -4721,7 +4720,9 @@ function App() {
           onPrintAll:()=>setScreen("print-all"),
           onGrammar:()=>setTab("grammar"),
           onVocab:()=>setTab("vocab"),
+          onGames:()=>setScreen("games"),
         }),
+        screen==="games" && e(GamesSection,{lessons,onHome:()=>setScreen("home")}),
         screen==="lesson"&&al && e("div",null,
           e(LessonFlow,{lesson:al,onComplete:completeLesson,onBack:()=>setScreen("home")}),
           e("button",{onClick:()=>{setPLId(activeLessonId);setScreen("print");},
